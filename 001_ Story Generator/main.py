@@ -1,4 +1,4 @@
-# story_generator.py - CORRECT VERSION
+# story_generator.py
 
 print("Welcome to the Story Generator!")
 print("=" * 40)
