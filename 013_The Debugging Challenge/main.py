@@ -12,16 +12,17 @@ def calculate_total(prices):
     total = 0
     for price in prices:
         # BUG 1: Type Error (Check how 'price' is handled)
-        total += price
+        total += float(price)
     
     # BUG 2: Scope Error (Can we access 'tax_amount' outside or use TAX_RATE correctly?)
-    total_with_tax = total * (1 + TAX_RATE)
+    tax_amount = TAX_RATE
+    total_with_tax = total * (1 + tax_amount)
     return total_with_tax
 
 def get_status(score):
     """Returns status based on score thresholds."""
     # BUG 3: Logical/Comparison Error (Check the boundaries)
-    if score > 100:
+    if score >= 100:
         return "High Volume"
     elif score > 50:
         return "Medium Volume"
@@ -42,17 +43,18 @@ def run_pipeline():
     
     # BUG 4: Iteration/Index Error 
     # (The range is often a trap for beginners)
-    for i in range(1, len(raw_data)):
+    for i in range(len(raw_data)):
         item = raw_data[i]
         if item["status"] == "completed":
             processed_prices.append(item["price"])
+
 
     # Calculate final metrics
     final_total = calculate_total(processed_prices)
     
     # BUG 5: Output/Formatting Error
     # (Trying to print the total with a description)
-    print("Pipeline Complete. Total Processed: " + final_total)
+    print(f"Pipeline Complete. Total Processed: {final_total}")
     
     volume_desc = get_status(final_total)
     print(f"Volume Category: {volume_desc}")
