@@ -1,0 +1,17 @@
+#libraries
+
+#  1. SETUP DIRECTORY 
+
+# 2. DATABASE CONFIGURATION 
+
+# Build Connection Strings
+
+#3. AUTO-CREATE DATABASE IF NOT EXISTS
+
+
+# 4. FETCH DATA FROM UCI 
+
+# Clean Column Names
+# 5. LOAD TO SQL SERVER
+
+# 6. LOCAL BACKUP 
