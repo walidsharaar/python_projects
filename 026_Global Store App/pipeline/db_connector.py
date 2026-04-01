@@ -1,7 +1,3 @@
-
-# db_connector.py
-# This module defines the SQLServerConnector class, which manages connections to a Microsoft SQL Server database.
-# import libraries for database connection and SQL execution
 import pyodbc
 from sqlalchemy import create_engine, text
 

@@ -1,14 +1,21 @@
 import os
+import sys
 import pandas as pd
-from db_connector import SQLServerConnector
-from bronze_layer import BronzeIngestor
-from silver_layer import SilverTransformer
-from gold_layer import GoldTransformer
+
+# Add the pipeline directory to the system path to ensure modules are found
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from pipeline.db_connector import SQLServerConnector
+from pipeline.bronze_layer import BronzeIngestor
+from pipeline.silver_layer import SilverTransformer
+from pipeline.gold_layer import GoldTransformer
 
 def get_csv_row_count(csv_path):
-    """Helper to quickly get CSV row count without loading full data into memory."""
+    """
+    Helper to quickly get CSV row count without loading full data into memory.
+    Used for the initial high-level check in the main loop.
+    """
     try:
-        # We use chunking to count rows efficiently for large files
         count = 0
         for chunk in pd.read_csv(csv_path, chunksize=10000, usecols=[0], encoding='ISO-8859-1'):
             count += len(chunk)
@@ -18,7 +25,9 @@ def get_csv_row_count(csv_path):
         return -1
 
 def table_exists_and_matches(engine, table_name, expected_count):
-    """Checks if the SQL table exists and has the same number of records."""
+    """
+    Checks if the SQL table exists and if the record count matches the source.
+    """
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
     if not inspector.has_table(table_name):
@@ -33,10 +42,11 @@ def table_exists_and_matches(engine, table_name, expected_count):
 
 def main():
     # 1. Configuration
+    # Adjust these settings to match your local SQL Server instance
     SERVER_NAME = 'localhost' 
     DATABASE_NAME = 'GlobalStoreDB'
     
-    # Pathing logic
+    # Pathing logic - ensure dataset is in the 'dataset' folder at project root
     base_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(base_dir, "dataset", "dataset.csv")
 
@@ -45,48 +55,48 @@ def main():
     engine = db.get_engine()
     
     if not db.test_connection():
-        print("\n[!] Connection sequence failed.")
+        print("\n[!] Connection sequence failed. Please verify SQL Server is running.")
         return
 
-    # Get expected count from CSV for incremental check
-    print("Checking local dataset status...")
+    # Check the source dataset
+    print("Scanning local dataset...")
     expected_count = get_csv_row_count(csv_path)
+    if expected_count == -1:
+        print("[!] Could not read source CSV. Pipeline aborted.")
+        return
 
-    # 3. Trigger Bronze Ingestion (with Check)
+    # 3. Bronze Layer (Ingestion)
     print("\n--- [STEP 1] Bronze Layer Status ---")
     if table_exists_and_matches(engine, "bronze_global_store", expected_count):
         print(">>> Bronze table is up-to-date. Skipping ingestion.")
     else:
-        print(">>> Ingesting Raw Data (Changes detected or table missing)...")
+        print(">>> Delta detected. Processing Bronze Ingestion...")
         ingestor = BronzeIngestor(csv_path, engine)
         if not ingestor.load_to_sql():
-            print("Pipeline failed at Bronze stage.")
+            print("Pipeline halted at Bronze stage.")
             return
-        print("Bronze Step Complete.")
 
-    # 4. Trigger Silver Transformation (with Check)
+    # 4. Silver Layer (Cleaning)
     print("\n--- [STEP 2] Silver Layer Status ---")
     if table_exists_and_matches(engine, "silver_global_store", expected_count):
         print(">>> Silver table is up-to-date. Skipping transformation.")
     else:
-        print(">>> Transforming Data to Silver Layer...")
+        print(">>> Delta detected. Processing Silver Transformation...")
         transformer = SilverTransformer(engine)
-        if transformer.transform():
-            print("Silver Step Complete.")
-        else:
-            print("Pipeline failed at Silver stage.")
+        if not transformer.transform():
+            print("Pipeline halted at Silver stage.")
             return
 
-    # 5. Gold Layer Transformation
-    print("\n--- [STEP 3] Gold Layer (Star Schema) ---")
-    # We check the fact table for the record count
+    # 5. Gold Layer (Star Schema)
+    print("\n--- [STEP 3] Gold Layer Status ---")
+    # We check the Fact table for the record count
     if table_exists_and_matches(engine, "fact_sales", expected_count):
         print(">>> Gold Star Schema is up-to-date. Skipping transformation.")
     else:
-        print(">>> Generating Star Schema in Gold Layer...")
+        print(">>> Delta detected. Processing Gold Transformation...")
         gold_transformer = GoldTransformer(engine)
         if gold_transformer.transform():
-            print("Gold Step Complete. Star Schema is ready for analysis.")
+            print("\n✅ Pipeline execution successful. All layers are synchronized.")
         else:
             print("Pipeline failed at Gold stage.")
 
