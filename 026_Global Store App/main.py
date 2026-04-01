@@ -2,7 +2,8 @@ import os
 import pandas as pd
 from db_connector import SQLServerConnector
 from bronze_layer import BronzeIngestor
-
+from silver_layer import SilverTransformer
+from gold_layer import GoldTransformer
 
 def get_csv_row_count(csv_path):
     """Helper to quickly get CSV row count without loading full data into memory."""
@@ -63,7 +64,31 @@ def main():
             return
         print("Bronze Step Complete.")
 
+    # 4. Trigger Silver Transformation (with Check)
+    print("\n--- [STEP 2] Silver Layer Status ---")
+    if table_exists_and_matches(engine, "silver_global_store", expected_count):
+        print(">>> Silver table is up-to-date. Skipping transformation.")
+    else:
+        print(">>> Transforming Data to Silver Layer...")
+        transformer = SilverTransformer(engine)
+        if transformer.transform():
+            print("Silver Step Complete.")
+        else:
+            print("Pipeline failed at Silver stage.")
+            return
 
+    # 5. Gold Layer Transformation
+    print("\n--- [STEP 3] Gold Layer (Star Schema) ---")
+    # We check the fact table for the record count
+    if table_exists_and_matches(engine, "fact_sales", expected_count):
+        print(">>> Gold Star Schema is up-to-date. Skipping transformation.")
+    else:
+        print(">>> Generating Star Schema in Gold Layer...")
+        gold_transformer = GoldTransformer(engine)
+        if gold_transformer.transform():
+            print("Gold Step Complete. Star Schema is ready for analysis.")
+        else:
+            print("Pipeline failed at Gold stage.")
 
 if __name__ == "__main__":
     main()
