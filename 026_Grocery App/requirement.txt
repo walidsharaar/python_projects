@@ -1,0 +1,33 @@
+=============================================================================
+
+PROJECT: Grocery Store Management System
+
+DESCRIPTION:
+
+A Python-powered inventory and sales management application.
+
+
+HOW IT WORKS:
+
+1. Database: Uses a local SQL Server (grocery_store_db) for persistent storage.
+
+2. Backend: Python (pyodbc) handles CRUD logic and data migrations.
+
+3. Frontend: Streamlit provides a web interface for searching items,
+
+updating stock levels, and processing new customer orders.
+
+=============================================================================
+
+--- Core Framework for the UI ---
+
+streamlit==1.32.0
+
+--- Database Driver for SQL Server ---
+
+pyodbc==5.1.0
+
+--- Data Manipulation and Analysis ---
+
+pandas==2.2.1
+
