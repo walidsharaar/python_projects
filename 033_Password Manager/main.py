@@ -1,73 +1,73 @@
 from tkinter import *
+from tkinter import messagebox
 from password_generator import PasswordGenerator
 from data_manager import DataManager
 
-class PasswordManagerApp:
-    """Main Class that manages the GUI and coordinates the engine and data manager."""
-    def __init__(self):
-        self.window = Tk()
-        self.window.title("Password Manager")
-        self.window.config(padx=50, pady=50)
+class PasswordApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("My Password Manager")
+        self.root.config(padx=50, pady=50)
 
-        # Initialize Helper Classes (Composition)
-        self.generator = PasswordGenerator()
-        self.data_manager = DataManager()
+        self.engine = PasswordGenerator()
+        self.db = DataManager()
 
-        self.setup_ui()
-        self.window.mainloop()
-
-    def setup_ui(self):
-        """Creates and layouts all the UI components."""
-        # Canvas for Image/Logo
+        # Canvas for Logo
         self.canvas = Canvas(height=200, width=200)
-        # Note: In a local environment, you'd use PhotoImage here
-        self.canvas.create_text(100, 100, text="🔐", font=("Arial", 80))
+        # Assuming logo.png exists in the same folder
+        try:
+            self.logo_img = PhotoImage(file="logo.png")
+            self.canvas.create_image(100, 100, image=self.logo_img)
+        except:
+            self.canvas.create_text(100, 100, text="LOGO", font=("Arial", 24, "bold"))
         self.canvas.grid(row=0, column=1)
 
         # Labels
-        self.website_label = Label(text="Website:")
-        self.website_label.grid(row=1, column=0)
-        self.email_label = Label(text="Email/Username:")
-        self.email_label.grid(row=2, column=0)
-        self.password_label = Label(text="Password:")
-        self.password_label.grid(row=3, column=0)
+        Label(text="Website:").grid(row=1, column=0)
+        Label(text="Email/Username:").grid(row=2, column=0)
+        Label(text="Password:").grid(row=3, column=0)
 
         # Entries
-        self.website_entry = Entry(width=35)
-        self.website_entry.grid(row=1, column=1, columnspan=2, sticky="EW")
+        self.website_entry = Entry(width=33)
+        self.website_entry.grid(row=1, column=1)
         self.website_entry.focus()
-        
-        self.email_entry = Entry(width=35)
-        self.email_entry.grid(row=2, column=1, columnspan=2, sticky="EW")
-        self.email_entry.insert(0, "user@email.com")
-        
-        self.password_entry = Entry(width=21)
-        self.password_entry.grid(row=3, column=1, sticky="EW")
+
+        self.email_entry = Entry(width=52)
+        self.email_entry.grid(row=2, column=1, columnspan=2)
+        self.email_entry.insert(0, "user@example.com")
+
+        self.password_entry = Entry(width=33)
+        self.password_entry.grid(row=3, column=1)
 
         # Buttons
-        self.generate_password_button = Button(text="Generate Password", command=self.create_password)
-        self.generate_password_button.grid(row=3, column=2, sticky="EW")
-        
-        self.add_button = Button(text="Add", width=36, command=self.save)
-        self.add_button.grid(row=4, column=1, columnspan=2, sticky="EW")
+        self.search_button = Button(text="Search", width=14, command=self.find_password)
+        self.search_button.grid(row=1, column=2)
 
-    def create_password(self):
-        """Interaction logic to generate and display a password."""
-        new_pass = self.generator.generate()
+        self.generate_password_button = Button(text="Generate Password", command=self.generate_password)
+        self.generate_password_button.grid(row=3, column=2)
+
+        self.add_button = Button(text="Add", width=44, command=self.save)
+        self.add_button.grid(row=4, column=1, columnspan=2)
+
+    def generate_password(self):
         self.password_entry.delete(0, END)
-        self.password_entry.insert(0, new_pass)
+        new_password = self.engine.generate()
+        self.password_entry.insert(0, new_password)
+
+    def find_password(self):
+        website = self.website_entry.get()
+        self.db.search_entry(website)
 
     def save(self):
-        """Interaction logic to send data to the manager and clear the UI."""
         website = self.website_entry.get()
         email = self.email_entry.get()
         password = self.password_entry.get()
 
-        success = self.data_manager.save_entry(website, email, password)
-        
-        if success:
+        if self.db.save_entry(website, email, password):
             self.website_entry.delete(0, END)
             self.password_entry.delete(0, END)
 
 if __name__ == "__main__":
-    PasswordManagerApp()
+    root = Tk()
+    app = PasswordApp(root)
+    root.mainloop()
