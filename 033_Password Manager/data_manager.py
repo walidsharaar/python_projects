@@ -2,11 +2,9 @@ import pyodbc
 from tkinter import messagebox
 
 class DataManager:
-    """Handles data validation and persistence to MS SQL Server."""
+    """Handles data validation, persistence, and searching in MS SQL Server."""
     
     def __init__(self):
-        # Configuration for MS SQL Server
-        # Adjust 'DRIVER' if you have a different version installed
         self.server = 'localhost' 
         self.database = 'passwordsDB'
         self.connection_string = (
@@ -20,18 +18,14 @@ class DataManager:
     def init_db(self):
         """Creates the database and table if they don't exist."""
         try:
-            # Connect to 'master' first to ensure the DB exists
             conn = pyodbc.connect(
                 f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={self.server};DATABASE=master;Trusted_Connection=yes;',
                 autocommit=True
             )
             cursor = conn.cursor()
-            
-            # Create Database if it doesn't exist
             cursor.execute(f"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '{self.database}') CREATE DATABASE {self.database}")
             conn.close()
 
-            # Connect to passwordsDB to create the table
             conn = pyodbc.connect(self.connection_string, autocommit=True)
             cursor = conn.cursor()
             cursor.execute("""
@@ -54,21 +48,40 @@ class DataManager:
             messagebox.showinfo(title="Oops", message="Please don't leave any fields empty!")
             return False
 
-        is_ok = messagebox.askokcancel(title=website, message=f"Details entered: \nEmail: {email} "
-                                                            f"\nPassword: {password} \nSave to SQL Database?")
-        if is_ok:
-            try:
-                conn = pyodbc.connect(self.connection_string)
-                cursor = conn.cursor()
-                
-                # SQL Insert Query
-                query = "INSERT INTO Passwords (website, email, password) VALUES (?, ?, ?)"
-                cursor.execute(query, (website, email, password))
-                
-                conn.commit()
-                conn.close()
-                return True
-            except Exception as e:
-                messagebox.showerror(title="Database Error", message=f"Could not save data: {e}")
-                return False
-        return False
+        try:
+            conn = pyodbc.connect(self.connection_string)
+            cursor = conn.cursor()
+            query = "INSERT INTO Passwords (website, email, password) VALUES (?, ?, ?)"
+            cursor.execute(query, (website, email, password))
+            conn.commit()
+            conn.close()
+            messagebox.showinfo(title="Success", message=f"Details for {website} saved successfully.")
+            return True
+        except Exception as e:
+            messagebox.showerror(title="Database Error", message=f"Could not save data: {e}")
+            return False
+
+    def search_entry(self, searchTerm):
+        """Searches for entries by website name or email using SQL LIKE."""
+        if len(searchTerm) == 0:
+            messagebox.showinfo(title="Error", message="Please enter a website or email to search.")
+            return
+
+        try:
+            conn = pyodbc.connect(self.connection_string)
+            cursor = conn.cursor()
+            # Search both website and email columns
+            query = "SELECT website, email, password FROM Passwords WHERE website LIKE ? OR email LIKE ?"
+            cursor.execute(query, (f'%{searchTerm}%', f'%{searchTerm}%'))
+            results = cursor.fetchall()
+            conn.close()
+
+            if results:
+                message_text = ""
+                for row in results:
+                    message_text += f"Website: {row.website}\nEmail: {row.email}\nPassword: {row.password}\n----------\n"
+                messagebox.showinfo(title=f"Results for '{searchTerm}'", message=message_text)
+            else:
+                messagebox.showinfo(title="Not Found", message=f"No entries found for '{searchTerm}'.")
+        except Exception as e:
+            messagebox.showerror(title="Database Error", message=f"Search failed: {e}")
