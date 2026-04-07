@@ -1,108 +1,191 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+except ImportError:
+    st.error("Missing Dependency: Please run 'pip install plotly' in your terminal to enable advanced visualizations.")
+    st.stop()
+from datetime import datetime
 from api_handler import WeatherEngine
 
-# Set Page Styling
-st.set_page_config(page_title="SkyCast Pro", page_icon="🌤️", layout="wide")
+# --- PAGE CONFIGURATION ---
+st.set_page_config(
+    page_title="SkyCast Pro | Meteorological Analytics",
+    page_icon="🌤️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Custom CSS for a professional look
+# --- CUSTOM CSS FOR PROFESSIONAL UI ---
 st.markdown("""
     <style>
-    .main { background-color: #f5f7f9; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #eef2f6; }
-    .stAlert { border-radius: 10px; }
+    /* Main background and font */
+    .main { background-color: #f8fafd; font-family: 'Inter', sans-serif; }
+    
+    /* Custom Card Styling */
+    .metric-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e1e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background-color: #ffffff;
+        border-right: 1px solid #e1e8f0;
+    }
+    
+    /* Metric Label refinement */
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        color: #64748b !important;
+    }
+    
+    /* Title styling */
+    .main-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Insight Box */
+    .insight-box {
+        background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin: 20px 0;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-def get_weather_insight(df, current):
-    """Generates a professional textual analysis of the data trend."""
-    temp_trend = "rising" if df['tempmax'].iloc[-1] > df['tempmax'].iloc[0] else "cooling down"
+# --- ANALYTICAL LOGIC ---
+def generate_data_story(df, current):
+    """Crafts a professional narrative based on multi-variate analysis."""
     avg_temp = df['temp'].mean()
-    rain_days = df[df['precipprob'] > 50].shape[0]
+    peak_temp = df['tempmax'].max()
+    is_windy = df['windspeed'].max() > 25
+    rain_risk = df['precipprob'].mean() > 30
     
-    insight = f"**Executive Summary:** The region is currently experiencing {current['conditions'].lower()}. "
-    insight += f"Over the next 15 days, we observe a {temp_trend} trend with an average temperature of {avg_temp:.1f}°C. "
+    story = f"**Current Status:** {current['conditions']} at {current['temp']}°C. "
     
-    if rain_days > 0:
-        insight += f"Precautions are advised for {rain_days} days where precipitation probability exceeds 50%."
+    if rain_risk:
+        story += "📊 **Trend Alert:** Our models detect a volatile precipitation pattern. Expect intermittent disruptions to outdoor operations. "
     else:
-        insight += "Expect stable, dry conditions throughout the forecast period."
-    
-    return insight
+        story += "📊 **Trend Alert:** Stable atmospheric pressure suggests a consistent clear-sky period ahead. "
+        
+    if is_windy:
+        story += "⚠️ **Operational Risk:** Elevated wind speeds detected (Peak: {0:.1f} km/h). High-altitude or maritime activities may require secondary risk assessments.".format(df['windspeed'].max())
+        
+    return story
 
-st.title("🌤️ SkyCast Professional Analytics")
-st.write("Advanced weather intelligence and predictive data storytelling.")
+def create_temp_chart(df):
+    """Advanced Plotly Range Chart."""
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df['datetime'], y=df['tempmax'],
+        line=dict(color='#ef4444', width=3),
+        name='Max Temp',
+        mode='lines+markers'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df['datetime'], y=df['tempmin'],
+        line=dict(color='#3b82f6', width=3),
+        name='Min Temp',
+        fill='tonexty', # Fills the area between max and min
+        fillcolor='rgba(59, 130, 246, 0.1)',
+        mode='lines+markers'
+    ))
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=0, r=0, t=30, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode="x unified"
+    )
+    return fig
 
-# Sidebar for Input
+# --- MAIN DASHBOARD INTERFACE ---
+st.markdown('<h1 class="main-title">SkyCast Pro Analytics</h1>', unsafe_allow_html=True)
+st.write("Meteorological Intelligence System for Hamburg Research & Logistics")
+
+# Sidebar Configuration
 with st.sidebar:
-    st.header("Control Panel")
-    city_input = st.text_input("Target Location", "Hamburg, Germany")
+    st.image("https://www.visualcrossing.com/assets/img/logo.png", width=150)
+    st.header("Parameters")
+    city_input = st.text_input("Global Location Filter", "Hamburg, Germany")
     st.divider()
-    st.info("💡 **Analytics Note:** This dashboard uses historical normalization to provide forecast accuracy.")
+    st.caption("Data Source: Visual Crossing High-Resolution Satellite & Station Network")
+    st.info("Current Mode: Metric (Celsius/km/h)")
 
-# Initialize API Engine
 engine = WeatherEngine()
 
-# Add a check to run automatically or on button press
-if st.button("Generate Analytics Report") or city_input:
-    with st.spinner('Synthesizing meteorological data...'):
-        data = engine.fetch_weather(city_input)
-        
+# Execution Flow
+if city_input:
+    data = engine.fetch_weather(city_input)
+    
     if "error" in data:
         st.error(data["error"])
     else:
-        # --- 1. KEY PERFORMANCE INDICATORS (KPIs) ---
+        # Data Preparation
         current = data['currentConditions']
-        st.subheader(f"Current Metrics: {data['resolvedAddress']}")
-        
-        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-        kpi1.metric("Current Temp", f"{current['temp']}°C", help="Real-time temperature")
-        kpi2.metric("Feels Like", f"{current['feelslike']}°C")
-        kpi3.metric("UV Index", f"{current['uvindex']}", delta_color="inverse")
-        kpi4.metric("Visibility", f"{current['visibility']} km")
-
-        # --- 2. DATA STORY & INSIGHTS ---
         forecast_df = pd.DataFrame(data['days'])
         forecast_df['datetime'] = pd.to_datetime(forecast_df['datetime'])
         
-        st.markdown("---")
-        st.subheader("📝 Automated Weather Insight")
-        st.success(get_weather_insight(forecast_df, current))
+        # --- 1. EXECUTIVE KPIs ---
+        st.markdown("### 🔍 Executive Real-Time Snapshot")
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Thermal Index", f"{current['temp']}°C", f"{current['feelslike']-current['temp']:.1f}°C Feels")
+        with m2:
+            st.metric("Aqueous Saturation", f"{current['humidity']}%", "Stable" if current['humidity'] < 70 else "High")
+        with m3:
+            st.metric("Atmospheric Flux", f"{current['windspeed']} km/h", f"Gusto {current.get('windgust', 0)}")
+        with m4:
+            st.metric("Optical Range", f"{current['visibility']} km", "Optimal" if current['visibility'] > 10 else "Reduced")
 
-        # --- 3. ANALYTICAL CHARTS ---
-        tab1, tab2, tab3 = st.tabs(["📈 Temperature Trajectory", "☔ Precipitation Risk", "💧 Humidity & Dew"])
+        # --- 2. DATA STORY OVERLAY ---
+        st.markdown(f"""
+            <div class="insight-box">
+                <h3>📢 Intelligence Report: {data['resolvedAddress']}</h3>
+                <p>{generate_data_story(forecast_df, current)}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        with tab1:
-            st.write("#### Maximum vs Minimum Temperature Variance")
-            # We use area chart for a more professional "filled" look for ranges
-            chart_data = forecast_df.set_index('datetime')[['tempmax', 'tempmin']]
-            st.area_chart(chart_data, color=["#ff4b4b", "#0072f0"])
+        # --- 3. ANALYTICAL VISUALS ---
+        col_left, col_right = st.columns([2, 1])
+        
+        with col_left:
+            st.markdown("#### 🌡️ Temperature Variance & Predicted Range")
+            st.plotly_chart(create_temp_chart(forecast_df), use_container_width=True)
+            
+            st.markdown("#### ☔ Precipitation Intensity Forecast")
+            fig_precip = px.bar(forecast_df, x='datetime', y='precipprob', 
+                               color='precipprob', color_continuous_scale='Blues',
+                               labels={'precipprob': 'Rain Probability %'})
+            fig_precip.update_layout(plot_bgcolor='rgba(0,0,0,0)', showlegend=False)
+            st.plotly_chart(fig_precip, use_container_width=True)
 
-        with tab2:
-            st.write("#### Daily Precipitation Probability (%)")
-            # Bar chart is better for discrete daily probability
-            st.bar_chart(forecast_df.set_index('datetime')['precipprob'], color="#00d4ff")
+        with col_right:
+            st.markdown("#### ⚖️ Correlation Matrix")
+            # Relationship between wind and temp
+            fig_corr = px.scatter(forecast_df, x="temp", y="windspeed", 
+                                 size="humidity", color="temp",
+                                 title="Temp vs Wind correlation",
+                                 template="plotly_white")
+            st.plotly_chart(fig_corr, use_container_width=True)
+            
+            st.markdown("#### 🛡️ Readiness Protocol")
+            st.checkbox("Logistics Preparedness", value=current['windspeed'] < 30)
+            st.checkbox("Outdoor Operations", value=current['precipprob'] < 20)
+            st.checkbox("HVAC Optimization", value=abs(current['temp'] - 20) < 10)
 
-        with tab3:
-            col_a, col_b = st.columns([2, 1])
-            with col_a:
-                st.write("#### Humidity Levels vs Dew Point")
-                st.line_chart(forecast_df.set_index('datetime')[['humidity', 'dew']])
-            with col_b:
-                st.write("#### Stats Overview")
-                st.write(forecast_df[['temp', 'humidity', 'windspeed']].describe())
-
-        # --- 4. RAW DATA REPOSITORY ---
-        with st.expander("Explore Full Meteorological Dataset"):
-            st.dataframe(
-                forecast_df[['datetime', 'tempmax', 'tempmin', 'precipprob', 'windspeed', 'conditions']], 
-                use_container_width=True,
-                hide_index=True
-            )
-            st.download_button(
-                label="Download CSV Report",
-                data=forecast_df.to_csv().encode('utf-8'),
-                file_name=f'weather_report_{city_input}.csv',
-                mime='text/csv',
-            )
+        # --- 4. DATA ACCESS ---
+        with st.expander("📁 Comprehensive Meteorological Record"):
+            st.dataframe(forecast_df, use_container_width=True)
