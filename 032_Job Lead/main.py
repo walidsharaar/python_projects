@@ -80,7 +80,7 @@ def get_job_data():
                 search_term=term,
                 location="Hamburg, Germany",
                 results_wanted=30, 
-                hours_old=168,     # Last 7 days
+                hours_old=24,     # Last 7 days
                 country_indeed='germany'
             )
             
