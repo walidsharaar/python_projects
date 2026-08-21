@@ -1,11 +1,7 @@
 # import libraries
 import pandas as pd
-import numpy as np
-from io import StringIO
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import cross_val_score
+
+
 
 # Use pd.read_csv and add an 'r' before the string to make it a raw path
 df = pd.read_csv(
@@ -14,77 +10,104 @@ df = pd.read_csv(
 # check the dataframe and evaluate the first 10 rows
 #print(df.head(10))
 
-# Replace '.' and '/' with '-'
-df['Opening_Date'] = df['Opening_Date'].astype(str).str.replace(r'[./]', '-', regex=True)
+# Drop the Store_ID column
+df = df.drop('Store_ID', axis=1)
 
-# Parse as date with dayfirst=True
-df['Opening_Date'] = pd.to_datetime(df['Opening_Date'], dayfirst=True, errors='coerce')
+# Check the first few rows to confirm it's gone
+#print(df.head())
 
-# Check if any dates failed to parse
-#print(df['Opening_Date'].isna().sum())   # Should be 0
+# Count missing values in each column
+print(df.isnull().sum())
 
-# Store_ID is just an identifier → drop
-df = df.drop(columns=['Store_ID'])
+# Show data type of each column
+print(df.dtypes)
 
-# City has too many unique values for only 25 rows → drop to avoid overfitting
-# State can be kept, but we will handle it carefully
-df = df.drop(columns=['City'])
+# Check unique values in text columns
+print("Location_Type:", df['Location_Type'].unique())
+print("Weather_Conditions:", df['Weather_Conditions'].unique())
+print("State:", df['State'].unique())
+print("City:", df['City'].unique()[:10])   # show only first 10 to avoid huge list
+# Show all unique values in Opening_Date
+#print(df['Opening_Date'].unique())
 
-# Extract year and month
-df['Opening_Year'] = df['Opening_Date'].dt.year
-df['Opening_Month'] = df['Opening_Date'].dt.month
+# Show first 30 unique date strings
+#print(df['Opening_Date'].unique()[:30])
 
-# Cyclical encoding for month (captures seasonality without assuming linearity)
-df['Month_sin'] = np.sin(2 * np.pi * df['Opening_Month'] / 12)
-df['Month_cos'] = np.cos(2 * np.pi * df['Opening_Month'] / 12)
+# Number of unique date strings
+print(len(df['Opening_Date'].unique()))
 
-# Drop original date
-df = df.drop(columns=['Opening_Date'])
+# Check if every Opening_Date matches dd-mm-yyyy pattern
+pattern_check = df['Opening_Date'].str.match(r'^\d{2}-\d{2}-\d{4}$')
+print("All match dd-mm-yyyy:", pattern_check.all())
 
-df['Location_Urban'] = (df['Location_Type'] == 'Urban').astype(int)
-df = df.drop(columns=['Location_Type'])
+# Convert string dates to actual datetime objects
+df['Opening_Date'] = pd.to_datetime(df['Opening_Date'], format='%d-%m-%Y')
+
+# Choose a reference date (today's date)
+reference_date = pd.Timestamp.now().normalize()
+
+# Create a numeric column: how many days since the store opened
+df['Store_Age_Days'] = (reference_date - df['Opening_Date']).dt.days
+
+# Check the result
+print(df[['Opening_Date', 'Store_Age_Days']].head(10))
 
 
+# Count how many dates failed to parse
+print("NaT count:", df['Opening_Date'].isna().sum())
+
+
+# Convert categorical columns to numbers 
+
+# drop cities  for now, as they are too many to encode
+df = df.drop('City', axis=1)
+
+df['Location_Type'] = df['Location_Type'].map({'Rural': 0, 'Urban': 1})
+
+# Create dummy variables, dropping first to avoid redundancy
 weather_dummies = pd.get_dummies(df['Weather_Conditions'], prefix='Weather', drop_first=True)
+
+# Add these new columns to df
 df = pd.concat([df, weather_dummies], axis=1)
-df = df.drop(columns=['Weather_Conditions'])
 
-
+# Drop the original text column
+df = df.drop('Weather_Conditions', axis=1)
 
 state_dummies = pd.get_dummies(df['State'], prefix='State', drop_first=True)
+
 df = pd.concat([df, state_dummies], axis=1)
-df = df.drop(columns=['State'])
+
+df = df.drop('State', axis=1)
 
 
-# Number of competitors per 1,000 people in the surrounding density
-df['Competitors_per_1000_density'] = df['Number_of_Competitors'] / (df['Population_Density'] + 1) * 1000
+print(df.head(10))
+print(df.columns)
+print(df.shape)
 
 
+# Drop Opening_Date column
+df = df.drop('Opening_Date', axis=1)
 
-# Show only the most important columns for readability
-preview_cols = [
-    'Population_Density', 'Number_of_Competitors', 'Average_Income_per_capita',
-    'Store_Size', 'Parking_Space', 'Sales', 'Location_Urban',
-    'Weather_Hot', 'Weather_Moderate', 'Opening_Year', 'Opening_Month',
-    'Competitors_per_1000_density'
-]
-print(df[preview_cols].head())
-X = df.drop(columns=['Sales'])
-y = df['Sales']
+# Find columns that are boolean (True/False) and convert them to integers (0/1)
+bool_cols = df.select_dtypes(include='bool').columns
+df[bool_cols] = df[bool_cols].astype(int)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+# Check that all columns are now numeric
+print(df.dtypes)
 
-model = LinearRegression()
-model.fit(X_train, y_train)
+# Check for any non-numeric columns left
+non_numeric = df.select_dtypes(exclude=['int64', 'float64']).columns
+print("Non-numeric columns:", non_numeric)
 
-y_pred = model.predict(X_test)
+# Preview the cleaned dataframe
+print(df.head())
 
-print('R²:', r2_score(y_test, y_pred))
-print('RMSE:', np.sqrt(mean_squared_error(y_test, y_pred)))
-scores = cross_val_score(model, X, y, cv=5, scoring='r2')
-print('Cross-validated R²:', scores)
-print('Mean R²:', scores.mean())
+# Exploratory Data Analysis (EDA) – Part 1
 
-#print(df.head(10))
+# Summary statistics for all numeric columns
+print(df.describe())
+
+# Correlation of every feature with Sales (sorted)
+corr_with_sales = df.corr()['Sales'].sort_values(ascending=False)
+print("\nCorrelation with Sales:\n")
+print(corr_with_sales)
