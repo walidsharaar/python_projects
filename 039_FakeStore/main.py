@@ -1,29 +1,49 @@
+import logging
+import sys
+from src.extract import extract_users, fetch_products
+from src.load import load_data_to_postgres
+from src.transform import transform_products, transform_users
 
-from src.extract import  fetch_products,extract_users
-from src.load import  load_data_to_postgres
-from src.transform import  transform_users,transform_products
+# Configure central logging format
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("etl_execution.log", mode="a"),
+    ],
+)
+
+logger = logging.getLogger("ETL_Orchestrator")
+
 
 def run_etl():
-    """
-    Runs the ETL process: Extracts data from the API, transforms it, and loads it into PostgreSQL.
-    """
-    # Extract data
-    product_df = fetch_products()
-    user_df = extract_users()
+    """Runs the complete ETL pipeline process wrapped in error handling."""
+    logger.info("==========================================")
+    logger.info("Starting FakeStore ETL Pipeline Execution")
+    logger.info("==========================================")
 
-    print("Data transformation is starting." )
+    try:
+        # Step 1: Extraction
+        product_df = fetch_products()
+        user_df = extract_users()
 
-    # Transform data
-    transformed_product_df = transform_products(product_df)
-    transformed_user_df = transform_users(user_df)
+        # Step 2: Transformation
+        transformed_product_df = transform_products(product_df)
+        transformed_user_df = transform_users(user_df)
 
-    print("Loading to postgres")
-    # Load data into PostgreSQL
-    load_data_to_postgres(transformed_product_df, 'products')
-    load_data_to_postgres(transformed_user_df, 'users')
+        # Step 3: Loading
+        load_data_to_postgres(transformed_product_df, "products")
+        load_data_to_postgres(transformed_user_df, "users")
 
-    print("ETL process completed successfully.")
+        logger.info("🎉 ETL process completed successfully with zero errors.")
 
-if  __name__ == "__main__":
+    except Exception as e:
+        logger.critical(
+            f"🔥 Pipeline failed during execution. Cause: {e}", exc_info=True
+        )
+        sys.exit(1)
+
+
+if __name__ == "__main__":
     run_etl()
-
