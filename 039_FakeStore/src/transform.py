@@ -1,76 +1,133 @@
+import logging
 import pandas as pd
 
+logger = logging.getLogger(__name__)
+
+
 def transform_products(product_df):
+    """Transforms raw product DataFrame by unnesting ratings, renaming columns,
+
+    and enforcing standard data types.
     """
-    Transforms product data by flattening nested dictionaries,
-    renaming columns, and formatting data types.
-    """
-    product_df = product_df.copy()
-    
-    # 1. Un-nest the 'rating' dictionary into separate columns
-    if 'rating' in product_df.columns:
-        product_df['rating_rate'] = product_df['rating'].apply(lambda x: x.get('rate') if isinstance(x, dict) else None)
-        product_df['rating_count'] = product_df['rating'].apply(lambda x: x.get('count') if isinstance(x, dict) else None)
+    if product_df.empty:
+        logger.warning("Product DataFrame is empty. Skipping transformation.")
+        return product_df
 
-    # 2. Rename existing columns
-    product_df = product_df.rename(columns={
-        'id': 'product_id',
-        'title': 'product_title',
-        'price': 'product_price',
-        'description': 'product_description',
-        'category': 'product_category'
-    })
+    try:
+        logger.info("Transforming products dataset...")
+        df = product_df.copy()
 
-    # 3. Explicitly select only flattened tabular columns (excluding raw dicts)
-    selected_columns = [
-        'product_id', 
-        'product_title', 
-        'product_price', 
-        'product_description', 
-        'product_category',
-        'rating_rate',
-        'rating_count'
-    ]
-    
-    product_df = product_df[selected_columns]
-    
-    # 4. Ensure numeric types
-    product_df['product_price'] = pd.to_numeric(product_df['product_price'], errors='coerce')
-    product_df['rating_rate'] = pd.to_numeric(product_df['rating_rate'], errors='coerce')
-    product_df['rating_count'] = pd.to_numeric(product_df['rating_count'], errors='coerce')
+        # Safely unnest dictionary rating column
+        if "rating" in df.columns:
+            df["rating_rate"] = df["rating"].apply(
+                lambda x: x.get("rate") if isinstance(x, dict) else None
+            )
+            df["rating_count"] = df["rating"].apply(
+                lambda x: x.get("count") if isinstance(x, dict) else None
+            )
 
-    return product_df  
+        # Standardize column naming
+        df = df.rename(
+            columns={
+                "id": "product_id",
+                "title": "product_title",
+                "price": "product_price",
+                "description": "product_description",
+                "category": "product_category",
+            }
+        )
+
+        selected_cols = [
+            "product_id",
+            "product_title",
+            "product_price",
+            "product_description",
+            "product_category",
+            "rating_rate",
+            "rating_count",
+        ]
+
+        df = df[selected_cols]
+
+        # Enforce numeric types
+        df["product_price"] = pd.to_numeric(
+            df["product_price"], errors="coerce"
+        )
+        df["rating_rate"] = pd.to_numeric(df["rating_rate"], errors="coerce")
+        df["rating_count"] = pd.to_numeric(df["rating_count"], errors="coerce")
+
+        logger.info("Product transformation completed successfully.")
+        return df
+
+    except KeyError as key_err:
+        logger.error(
+            f"Missing expected column during product transformation: {key_err}"
+        )
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in product transformation: {e}")
+        raise
+
 
 def transform_users(user_df):
+    """Transforms raw user DataFrame by unnesting address/name dictionaries,
+
+    renaming columns, and standardizing attributes.
     """
-    Transforms the user DataFrame by renaming columns and converting data types.
+    if user_df.empty:
+        logger.warning("User DataFrame is empty. Skipping transformation.")
+        return user_df
 
-    Args:
-        user_df (pd.DataFrame): The original user DataFrame.
-        """
-    #copy the dataframe to avoid modifying the original
-    user_df = user_df.copy()
-    # Example transformation: rename columns and convert data types
-    user_df = user_df.copy()
-    user_df['user_firstname'] = user_df['name'].apply(lambda x: x['firstname'])
-    user_df['user_lastname'] = user_df['name'].apply(lambda x: x['lastname'])
-    user_df['street'] = user_df['address'].apply(lambda x: x['street'])
-    user_df['city'] = user_df['address'].apply(lambda x: x['city'])
-    user_df['zipcode'] = user_df['address'].apply(lambda x: x['zipcode'])
+    try:
+        logger.info("Transforming users dataset...")
+        df = user_df.copy()
 
-    user_df = user_df.rename(columns={
-        'id': 'user_id',
-        'email': 'user_email',
-        'username': 'user_name'
-    })
+        # Unnest nested dict fields safely
+        df["user_firstname"] = df["name"].apply(
+            lambda x: x.get("firstname") if isinstance(x, dict) else None
+        )
+        df["user_lastname"] = df["name"].apply(
+            lambda x: x.get("lastname") if isinstance(x, dict) else None
+        )
+        df["street"] = df["address"].apply(
+            lambda x: x.get("street") if isinstance(x, dict) else None
+        )
+        df["city"] = df["address"].apply(
+            lambda x: x.get("city") if isinstance(x, dict) else None
+        )
+        df["zipcode"] = df["address"].apply(
+            lambda x: x.get("zipcode") if isinstance(x, dict) else None
+        )
 
-    user_df = user_df[['user_id',
-                        'user_firstname',
-                        'user_lastname',
-                        'user_email',
-                        'user_name',
-                        'street',
-                        'city',
-                        'zipcode']]
+        df = df.rename(
+            columns={
+                "id": "user_id",
+                "email": "user_email",
+                "username": "user_name",
+            }
+        )
 
-    return user_df
+        selected_cols = [
+            "user_id",
+            "user_firstname",
+            "user_lastname",
+            "user_email",
+            "user_name",
+            "street",
+            "city",
+            "zipcode",
+        ]
+
+        df = df[selected_cols]
+
+        logger.info("User transformation completed successfully.")
+        return df
+
+    except KeyError as key_err:
+        logger.error(
+            f"Missing expected column during user transformation: {key_err}"
+        )
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in user transformation: {e}")
+        raise
