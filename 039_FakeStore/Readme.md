@@ -13,6 +13,7 @@ This pipeline extracts e-commerce product data from a public REST API, cleans an
 * **Database:** PostgreSQL
 * **API Integration:** Requests
 * **Environment Management:** `python-dotenv`
+* **Install the requirement from txt file:** `pip install -r requirements.txt`
 
 ## Running the Pipeline
 

@@ -1,0 +1,12 @@
+# Core Data Manipulation & Analysis
+pandas>=2.0.0
+
+# HTTP Requests for API Extraction
+requests>=2.31.0
+
+# Database ORM & PostgreSQL Driver
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Environment Variable Management
+python-dotenv>=1.0.0
