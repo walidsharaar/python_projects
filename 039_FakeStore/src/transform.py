@@ -2,17 +2,17 @@ import pandas as pd
 
 def transform_products(product_df):
     """
-    Transforms the product DataFrame by renaming columns and converting data types.
-
-    Args:
-        product_df (pd.DataFrame): The original product DataFrame.
-        
-    Returns:
-        pd.DataFrame: The transformed product DataFrame.
+    Transforms product data by flattening nested dictionaries,
+    renaming columns, and formatting data types.
     """
-    #copy the dataframe to avoid modifying the original
     product_df = product_df.copy()
-    # Example transformation: rename columns and convert data types
+    
+    # 1. Un-nest the 'rating' dictionary into separate columns
+    if 'rating' in product_df.columns:
+        product_df['rating_rate'] = product_df['rating'].apply(lambda x: x.get('rate') if isinstance(x, dict) else None)
+        product_df['rating_count'] = product_df['rating'].apply(lambda x: x.get('count') if isinstance(x, dict) else None)
+
+    # 2. Rename existing columns
     product_df = product_df.rename(columns={
         'id': 'product_id',
         'title': 'product_title',
@@ -21,16 +21,25 @@ def transform_products(product_df):
         'category': 'product_category'
     })
 
-    product_df= product_df
-    [['product_id', 
-      'product_title', 
-      'product_price', 
-      'product_description', 
-      'product_category']]
+    # 3. Explicitly select only flattened tabular columns (excluding raw dicts)
+    selected_columns = [
+        'product_id', 
+        'product_title', 
+        'product_price', 
+        'product_description', 
+        'product_category',
+        'rating_rate',
+        'rating_count'
+    ]
     
+    product_df = product_df[selected_columns]
+    
+    # 4. Ensure numeric types
     product_df['product_price'] = pd.to_numeric(product_df['product_price'], errors='coerce')
-    
-    return product_df   
+    product_df['rating_rate'] = pd.to_numeric(product_df['rating_rate'], errors='coerce')
+    product_df['rating_count'] = pd.to_numeric(product_df['rating_count'], errors='coerce')
+
+    return product_df  
 
 def transform_users(user_df):
     """
