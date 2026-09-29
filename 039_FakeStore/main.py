@@ -4,13 +4,17 @@ from src.extract import extract_users, fetch_products
 from src.load import load_data_to_postgres
 from src.transform import transform_products, transform_users
 
-# Configure central logging format
+# Force UTF-8 encoding for standard output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+# Configure central logging format with UTF-8 file encoding
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("etl_execution.log", mode="a"),
+        logging.FileHandler("etl_execution.log", mode="a", encoding="utf-8"),
     ],
 )
 
@@ -36,11 +40,11 @@ def run_etl():
         load_data_to_postgres(transformed_product_df, "products")
         load_data_to_postgres(transformed_user_df, "users")
 
-        logger.info("🎉 ETL process completed successfully with zero errors.")
+        logger.info("[SUCCESS] ETL process completed successfully with zero errors.")
 
     except Exception as e:
         logger.critical(
-            f"🔥 Pipeline failed during execution. Cause: {e}", exc_info=True
+            f"[CRITICAL] Pipeline failed during execution. Cause: {e}", exc_info=True
         )
         sys.exit(1)
 
