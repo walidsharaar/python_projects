@@ -26,15 +26,21 @@ def load_data_to_postgres(df, table_name):
         )
         return
 
+    # Use 'postgresql+psycopg://' (Psycopg 3) to prevent Windows encoding crashes on error messages
     connection_string = (
-        f"postgresql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
+        f"postgresql+psycopg://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
     )
 
     try:
         logger.info(
             f"Connecting to database and loading data into '{table_name}'..."
         )
-        engine = create_engine(connection_string, connect_args={"connect_timeout": 5})
+        engine = create_engine(
+            connection_string,
+            connect_args={
+                "connect_timeout": 5,
+            },
+        )
 
         df.to_sql(table_name, engine, if_exists="replace", index=False)
         logger.info(
