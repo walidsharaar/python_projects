@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS uom (
 );
 
 -- Insert standard units to start with
-INSERT INTO uom (uom_id, uom_name) VALUES 
+INSERT INTO uom (uom_id, uom_name) VALUES
 (1, 'kg'),
 (2, 'gram'),
 (3, 'piece'),
@@ -23,15 +23,15 @@ CREATE TABLE IF NOT EXISTS products (
     uom_id INT NOT NULL,
     price_per_unit NUMERIC(10, 2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_uom 
-        FOREIGN KEY (uom_id) 
+    CONSTRAINT fk_uom
+        FOREIGN KEY (uom_id)
         REFERENCES uom(uom_id)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
 
 -- Insert sample product records
-INSERT INTO products (name, uom_id, price_per_unit) VALUES 
+INSERT INTO products (name, uom_id, price_per_unit) VALUES
 ('Tomato', 1, 1.50),
 ('Potato', 1, 0.90),
 ('Apple', 1, 2.20),
@@ -53,20 +53,20 @@ CREATE TABLE IF NOT EXISTS order_details (
     product_id INT NOT NULL,
     quantity NUMERIC(10, 2) NOT NULL,
     total_price NUMERIC(10, 2) NOT NULL, -- (quantity * price_per_unit at time of order)
-    CONSTRAINT fk_orders 
-        FOREIGN KEY (order_id) 
-        REFERENCES orders(order_id) 
+    CONSTRAINT fk_orders
+        FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
         ON DELETE CASCADE,
-    CONSTRAINT fk_products 
-        FOREIGN KEY (product_id) 
-        REFERENCES products(product_id) 
+    CONSTRAINT fk_products
+        FOREIGN KEY (product_id)
+        REFERENCES products(product_id)
         ON DELETE RESTRICT
 );
 
 -- Insert sample orders (Header)
 -- order_id 1: Alice Johnson
 -- order_id 2: Bob Smith
-INSERT INTO orders (order_id, customer_name, total_price, created_at) VALUES 
+INSERT INTO orders (order_id, customer_name, total_price, created_at) VALUES
 (1, 'Alice Johnson', 5.60, '2026-10-30 10:15:00'),
 (2, 'Bob Smith', 7.00, '2026-10-31 14:30:00')
 ON CONFLICT (order_id) DO NOTHING;
@@ -78,7 +78,7 @@ SELECT setval('orders_order_id_seq', (SELECT MAX(order_id) FROM orders));
 -- Order 1 items: 2 kg Tomatoes ($1.50/unit = $3.00) + 2 liters Milk ($1.10/unit = $2.20) -> Wait, let's match exact math:
 -- Tomato (ID 1): 2 kg @ 1.50 = 3.00
 -- Milk (ID 4): 2 litres @ 1.30 (let's use exact line total) -> Total order: 5.60
-INSERT INTO order_details (order_id, product_id, quantity, total_price) VALUES 
+INSERT INTO order_details (order_id, product_id, quantity, total_price) VALUES
 (1, 1, 2.00, 3.00), -- 2 kg of Tomato
 (1, 4, 2.00, 2.60), -- 2 litres of Milk
 (2, 3, 2.00, 4.40), -- 2 kg of Apple (2.20 * 2)
