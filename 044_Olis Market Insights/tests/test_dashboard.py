@@ -25,9 +25,9 @@ LANGUAGES = list(json.loads((ROOT / "src" / "i18n" / "translations.json")
 # t() shows a missing text as "[some.key]"; it must never reach the screen
 MISSING_TEXT = re.compile(r"\[[a-z_]+\.[a-z0-9_.]+\]")
 
-# page file -> (number of KPI tiles, number of charts: funnel + one per question)
+# page file -> (number of KPI tiles, number of charts: funnel + channel chart)
 PAGES = {
-    "views/executive.py": (5, 5),
+    "views/executive.py": (4, 2),
 }
 
 

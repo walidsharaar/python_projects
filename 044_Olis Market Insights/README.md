@@ -174,7 +174,7 @@ One screen, built like a story: **what is the problem → why → what do we do 
    | Contracts without a known channel | contracts from leads without a channel ÷ all contracts | Can we trust the channel numbers? |
 
 3. **Funnel:** what happens to 1,000 new leads.
-4. **Four questions**, each with one chart, details for one chosen item, and a card *What happened / Why / What to do / How we will know / Who acts*.
+4. **Three tabs.** *For executives:* the four main KPIs, the funnel, and the actions ranked by what is at stake (e.g. "+37 active sellers if social leads converted like search leads"), each with owner and success measure (`mart_opportunities`). *For marketing:* a channel scorecard with a verdict per channel (Grow / Watch / Review spend / Fix tracking / Too little data, with the rule written under the table, `mart_channel_scorecard`), and three landing page actions. *Ask the data:* the local AI.
 5. **Ask the data:** a free, local AI model (Ollama) answers questions using only the numbers on the screen.
 6. **Glossary:** every technical word (MQL, GMV, median, confidence interval, p-value, cohort, A/B test …) in one plain sentence.
 

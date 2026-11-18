@@ -174,7 +174,7 @@ Ein einziger Bildschirm, aufgebaut wie eine Geschichte: **Was ist das Problem �
    | Verträge ohne bekannten Kanal | Verträge von Leads ohne Kanal ÷ alle Verträge | Können wir den Kanalzahlen trauen? |
 
 3. **Funnel:** was aus 1.000 neuen Leads wird.
-4. **Vier Fragen**, jede mit einer Grafik, Details für einen gewählten Eintrag und einer Karte *Was passiert ist / Warum / Was wir tun / Woran wir es merken / Wer handelt*.
+4. **Drei Tabs.** *Für die Geschäftsführung:* die vier wichtigsten Kennzahlen, der Funnel und die Maßnahmen, sortiert nach dem, was auf dem Spiel steht (z. B. „+37 aktive Verkäufer, wenn Social-Leads so oft abschließen wie Leads aus der Suche“), jeweils mit Verantwortlichen und Erfolgsmessung (`mart_opportunities`). *Für das Marketing:* eine Kanal-Scorecard mit einer Bewertung pro Kanal (Ausbauen / Beobachten / Budget prüfen / Tracking reparieren / Zu wenige Daten, die Regel steht unter der Tabelle, `mart_channel_scorecard`) und drei Maßnahmen für Landingpages. *Frag die Daten:* die lokale KI.
 5. **Frag die Daten:** ein kostenloses, lokales KI-Modell (Ollama) beantwortet Fragen und nutzt nur die Zahlen auf dem Bildschirm.
 6. **Begriffe:** jedes Fachwort (MQL, GMV, Median, Konfidenzintervall, p-Wert, Kohorte, A/B-Test …) in einem einfachen Satz.
 

@@ -72,6 +72,14 @@ def executive_funnel() -> pd.DataFrame:
     return query("SELECT * FROM mart_executive_funnel ORDER BY stage_order").set_index("stage_key")
 
 
+def opportunities() -> pd.DataFrame:
+    return query("SELECT * FROM mart_opportunities ORDER BY priority")
+
+
+def channel_scorecard() -> pd.DataFrame:
+    return query("SELECT * FROM mart_channel_scorecard")
+
+
 def data_quality() -> pd.DataFrame:
     return query("SELECT * FROM mart_data_quality")
 
