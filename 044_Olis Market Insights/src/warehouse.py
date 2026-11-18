@@ -20,7 +20,8 @@ import duckdb
 
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "data" / "processed"
-SQL_DIR = ROOT / "sql" / "warehouse"
+# Run in this order: the marts are built on top of the facts.
+SQL_DIRS = [ROOT / "sql" / "warehouse", ROOT / "sql" / "marts"]
 DB_PATH = ROOT / "database" / "warehouse.duckdb"
 
 # fact/dim table -> columns that together must be unique (the grain)
@@ -31,6 +32,9 @@ GRAIN = {
     "fct_order_items": ["order_id", "order_item_id"],
     "fct_orders": ["order_id"],
     "fct_seller_activation": ["seller_id"],
+    "mart_kpi_summary": ["kpi_key"],
+    "mart_gtm_monthly": ["cohort_month"],
+    "mart_channel_performance": ["origin"],
 }
 
 
@@ -48,7 +52,8 @@ def load_staging(con) -> None:
 
 
 def build_model(con) -> None:
-    for sql_file in sorted(SQL_DIR.glob("*.sql")):
+    sql_files = [f for folder in SQL_DIRS for f in sorted(folder.glob("*.sql"))]
+    for sql_file in sql_files:
         con.execute(sql_file.read_text(encoding="utf-8"))
         table = sql_file.stem.split("_", 1)[1]          # 20_fct_leads -> fct_leads
         print(f"  {sql_file.name:<30} -> {scalar(con, f'SELECT COUNT(*) FROM {table}'):>9,} rows")
@@ -87,6 +92,17 @@ def validate(con) -> None:
     check(scalar(con, "SELECT COUNT(*) FROM fct_leads WHERE is_won") == 842,
           "842 won leads in fct_leads")
 
+    # 5. Marts must add up to the facts they come from (reconciliation)
+    check(scalar(con, "SELECT SUM(leads) FROM mart_gtm_monthly") == 8_000
+          and scalar(con, "SELECT SUM(leads) FROM mart_channel_performance") == 8_000,
+          "monthly and channel marts both add up to 8,000 leads")
+    check(scalar(con, "SELECT SUM(won_60d) FROM mart_gtm_monthly")
+          == scalar(con, "SELECT numerator FROM mart_kpi_summary WHERE kpi_key = 'lead_to_win_rate_60d'"),
+          "monthly 60-day wins add up to the KPI summary")
+    check(scalar(con, "SELECT COUNT(*) FROM mart_channel_performance "
+                      "WHERE NOT lead_to_win_rate BETWEEN lead_to_win_ci_low AND lead_to_win_ci_high") == 0,
+          "every channel rate lies inside its confidence interval")
+
     if problems:
         raise SystemExit(f"\n{len(problems)} validation problem(s). Do not use this warehouse.")
 
@@ -115,6 +131,31 @@ def show_lessons(con) -> None:
         print(f"  activation rate, {label:<38} {rate:.2%}")
 
 
+def show_kpis(con) -> None:
+    """Print the KPI layer, so every run shows the headline numbers."""
+    print("\nKPI summary (mart_kpi_summary)")
+    for key, unit, value, num, den in con.execute(
+            "SELECT kpi_key, unit, value, numerator, denominator FROM mart_kpi_summary").fetchall():
+        shown = f"{value:.1%}" if unit == "rate" else f"{value:,.1f} {unit}"
+        # UNION ALL gives all rows one common type (DOUBLE), so format as whole numbers
+        basis = f"{num:,.0f} / {den:,.0f}" if den else f"n = {num:,.0f}"
+        print(f"  {key:<36} {shown:>14}   ({basis})")
+
+    print("\nChannel performance (mart_channel_performance)")
+    print(f"  {'origin':<18} {'leads':>6} {'win rate':>9} {'95% CI':>15} "
+          f"{'sellers*':>9} {'activ.':>7} {'GMV 90d':>8}")
+    for o, leads, rate, lo, hi, small, n_s, act, gmv in con.execute("""
+            SELECT origin, leads, lead_to_win_rate, lead_to_win_ci_low, lead_to_win_ci_high,
+                   is_small_sample, won_sellers_full_window, activation_rate, gmv_90d_per_won_seller
+            FROM mart_channel_performance""").fetchall():
+        act_s = f"{act:.0%}" if act is not None else "-"
+        gmv_s = f"{gmv:,.0f}" if gmv is not None else "-"
+        flag = " (small)" if small else ""
+        print(f"  {o:<18} {leads:>6,} {rate:>9.1%} {lo:>7.1%}-{hi:<7.1%} "
+              f"{n_s:>9} {act_s:>7} {gmv_s:>8}{flag}")
+    print("  * won sellers with a full 90-day window")
+
+
 def main() -> None:
     DB_PATH.parent.mkdir(exist_ok=True)
     with duckdb.connect(str(DB_PATH)) as con:
@@ -125,6 +166,7 @@ def main() -> None:
         print("\n3. Validation")
         validate(con)
         show_lessons(con)
+        show_kpis(con)
     print(f"\nWarehouse ready: {DB_PATH.relative_to(ROOT)}")
 
 
