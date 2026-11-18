@@ -1,7 +1,7 @@
 """Translations and number formatting for the dashboard and reports.
 
 All display text lives in translations.json, one key per text:
-    t("overview.title", "de")  ->  "GTM-Überblick"
+    t("exec.title", "de")  ->  "Vom Lead zum aktiven Verkäufer"
 
 Code, SQL and column names stay English. Only what a person READS is
 translated. Changing the language never changes a calculation.
@@ -54,6 +54,11 @@ def fmt_pct(rate: float, lang: str, digits: int = 1) -> str:
     """0.105 -> en '10.5%' | de '10,5 %' | fa '۱۰٫۵٪'"""
     number = fmt_num(rate * 100, lang, digits)
     return {"de": f"{number} %", "fa": f"{number}٪"}.get(lang, f"{number}%")
+
+
+def fmt_p(p: float, lang: str) -> str:
+    """0.0234 -> 'p = 0.023' | 0.00001 -> 'p < 0.001' (never 'p = 0.000', which looks like an error)"""
+    return f"p < {fmt_num(0.001, lang, 3)}" if p < 0.001 else f"p = {fmt_num(p, lang, 3)}"
 
 
 def fmt_date(date, lang: str) -> str:

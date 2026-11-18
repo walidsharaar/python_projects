@@ -68,6 +68,10 @@ def buyer_retention() -> pd.DataFrame:
     return query("SELECT * FROM mart_buyer_retention ORDER BY cohort_month, month_number")
 
 
+def executive_funnel() -> pd.DataFrame:
+    return query("SELECT * FROM mart_executive_funnel ORDER BY stage_order").set_index("stage_key")
+
+
 def data_quality() -> pd.DataFrame:
     return query("SELECT * FROM mart_data_quality")
 

@@ -38,6 +38,7 @@ GRAIN = {
     "mart_buyer_retention": ["cohort_month", "month_number"],
     "mart_seller_activation_curve": ["won_month", "window_days"],
     "mart_data_quality": ["check_key"],
+    "mart_executive_funnel": ["stage_key"],
 }
 
 

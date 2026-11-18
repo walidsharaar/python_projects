@@ -57,11 +57,12 @@ def apply_direction() -> None:
         )
 
 
-def kpi_tile(column, kpis, key: str) -> None:
-    """One KPI tile: value, basis (numerator/denominator) and a help text.
+def kpi_tile(column, kpis, key: str, delta: str | None = None, delta_note: str | None = None) -> None:
+    """One KPI tile: value, how it is calculated, the basis (numerator/denominator), help text.
 
-    In German and Persian the help text also shows the English term, so the
-    dashboard teaches the vocabulary used in international teams.
+    The calculation is shown under the number in plain words (exec.formula.<key>),
+    so anyone can answer "how did you calculate this?". In German and Persian the
+    help text also shows the English term. delta: an optional change, e.g. "−3.6 pts".
     """
     row = kpis.loc[key]
     code = lang()
@@ -80,6 +81,6 @@ def kpi_tile(column, kpis, key: str) -> None:
     help_text = tr(f"kpi.{key}.help")
     if code != "en":
         help_text += "\n\n" + tr("common.english_term", term=t(f"kpi.{key}.name", "en"))
-    column.metric(tr(f"kpi.{key}.name"), value, help=help_text, border=True)
-    if basis:
-        column.caption(basis)
+    column.metric(tr(f"kpi.{key}.name"), value, delta=delta, help=help_text, border=True,
+                  delta_description=delta_note)
+    column.caption(tr("exec.how", formula=tr(f"exec.formula.{key}")) + (f" ({basis})" if basis else ""))

@@ -25,13 +25,13 @@ from pathlib import Path
 
 import duckdb
 import pandas as pd
-from statsmodels.stats.proportion import proportions_ztest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.i18n import fmt_date, fmt_month, fmt_num, fmt_pct, languages, t  # noqa: E402
+from src import insights  # noqa: E402
+from src.i18n import fmt_date, fmt_month, fmt_num, fmt_p, fmt_pct, languages, t  # noqa: E402
 
 # Default warehouse; set GTM_WAREHOUSE (or pass --database) to use another copy
 DEFAULT_DB = Path(os.environ.get("GTM_WAREHOUSE", ROOT / "database" / "warehouse.duckdb"))
@@ -39,7 +39,6 @@ OUTPUT_DIR = ROOT / "reports" / "weekly"
 REPORT_KPIS = ["mql_count", "lead_to_win_rate_60d_tracked", "sales_cycle_median_days",
                "unattributed_win_share", "seller_activation_rate_full_window",
                "time_to_first_sale_median_days", "gmv_90d_per_won_seller", "buyer_repeat_rate"]
-ALPHA = 0.05            # threshold for "clear change" in the anomaly check
 DQ_THRESHOLD = 0.05     # data quality gaps below 5 % of their records are not listed
 TOP_FINDINGS = [1, 2, 3]
 AI_MODEL = "claude-opus-5-5"
@@ -57,20 +56,8 @@ def load(db_path: Path) -> dict:
         }
 
 
-def latest_month_check(monthly) -> dict:
-    """Latest tracked month vs all earlier tracked months together (two-proportion z-test)."""
-    last, earlier, before = monthly.iloc[-1], monthly.iloc[:-1], monthly.iloc[-2]
-    won_earlier, leads_earlier = int(earlier["won_60d"].sum()), int(earlier["leads"].sum())
-    _, p = proportions_ztest([int(last["won_60d"]), won_earlier], [int(last["leads"]), leads_earlier])
-    return {
-        "month": last["cohort_month"],
-        "leads": int(last["leads"]),
-        "leads_change": last["leads"] / before["leads"] - 1,
-        "rate": float(last["lead_to_win_rate_60d"]),
-        "rate_earlier": won_earlier / leads_earlier,
-        "p_value": float(p),
-        "clear_change": bool(p < ALPHA),
-    }
+# The anomaly check lives in src/insights.py, shared with the dashboard
+latest_month_check = insights.latest_month_check
 
 
 # ------------------------------------------------------------- formatting
@@ -111,7 +98,7 @@ def build_report(data: dict, check: dict, lang: str, ai_text: str | None, ai_sta
               "- " + tr("report.latest.leads", month=month, leads=fmt_num(check["leads"], lang),
                         change=signed_pct(check["leads_change"], lang)),
               "- " + tr("report.latest.rate", month=month, rate=fmt_pct(check["rate"], lang),
-                        earlier=fmt_pct(check["rate_earlier"], lang), p=fmt_num(check["p_value"], lang, 3)),
+                        earlier=fmt_pct(check["rate_earlier"], lang), p=fmt_p(check["p_value"], lang)),
               "", f"> {tr('report.latest.alert' if check['clear_change'] else 'report.latest.normal')}"]
 
     # 3. data quality
