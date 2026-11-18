@@ -16,9 +16,8 @@ SELECT
     AVG(is_won_within_60d::INT)                     AS lead_to_win_rate_60d,
     MEDIAN(sales_cycle_days) FILTER (WHERE is_won AND NOT dq_negative_sales_cycle)
                                                     AS sales_cycle_median_days,
-    -- A cohort is fair only if its whole 60-day window lies after the
-    -- start of deal tracking: first day of the month >= 5 Dec 2017.
-    cohort_month >= DATE '2017-12-05'               AS deal_tracking_complete
+    -- Defined once in fct_leads (same value for every lead of a month)
+    BOOL_AND(deal_tracking_complete)                AS deal_tracking_complete
 FROM fct_leads
 GROUP BY cohort_month
 ORDER BY cohort_month;

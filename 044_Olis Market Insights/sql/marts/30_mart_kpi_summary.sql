@@ -25,6 +25,14 @@ SELECT 'lead_to_win_rate_60d', 'rate',
 FROM fct_leads
 
 UNION ALL
+-- Same, but only lead months with complete deal tracking (from Jan 2018).
+-- This is the fair headline number; the one above includes untracked months.
+SELECT 'lead_to_win_rate_60d_tracked', 'rate',
+       AVG(is_won_within_60d::INT), SUM(is_won_within_60d::INT), COUNT(*)
+FROM fct_leads
+WHERE deal_tracking_complete
+
+UNION ALL
 -- Median, because a few very long deals pull the mean up (48 vs 14 days).
 SELECT 'sales_cycle_median_days', 'days',
        MEDIAN(sales_cycle_days), COUNT(*), NULL

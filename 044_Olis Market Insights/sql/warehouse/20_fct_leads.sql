@@ -8,6 +8,11 @@ SELECT
     l.mql_id,
     CAST(l.first_contact_date AS DATE)                  AS first_contact_date,
     CAST(date_trunc('month', l.first_contact_date) AS DATE) AS cohort_month,
+    -- Deals were only recorded from the first won_date on (5 Dec 2017).
+    -- A lead month is fair only if it starts after that, so its whole
+    -- 60-day window was tracked. One definition for every mart and analysis.
+    date_trunc('month', l.first_contact_date)
+        >= (SELECT MIN(won_date) FROM stg_deals)        AS deal_tracking_complete,
     l.origin,
     l.is_attributed,
     l.landing_page_id,
