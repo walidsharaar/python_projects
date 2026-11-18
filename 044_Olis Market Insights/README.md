@@ -3,7 +3,7 @@
 > End-to-end Go-to-Market analysis of a **two-sided B2B marketplace**: from the first marketing touchpoint, through the sales close, to the seller's first revenue.
 > Built with Python, DuckDB/SQL and Streamlit on **real** marketplace data (Olist, Brazil, 2016–2018).
 
-*Deutsche Version: [README.md](README.md)*
+*Deutsche Version: [README.de.md](README.de.md)*
 
 ---
 
@@ -40,7 +40,7 @@ Each question maps to a typical responsibility of a GTM & Insights analyst. The 
 | Q6 | **Win/loss for sales enablement** | What separates leads that close from leads that don't, and wins that activate from wins that don't? | Logistic regression (origin, landing page, month), won-vs-activated comparison (lead type, business type, SDR) | No explicit loss reasons exist, so "loss" = MQL without a closed deal |
 | Q7 | **Content effectiveness** | Which landing pages convert best, and are the differences statistically real? | Chi-square test, pairwise z-tests with Benjamini–Hochberg correction | 495 landing pages, so a multiple-testing correction is mandatory |
 | Q8 | **Experiment design (A/B test)** | If we test a new landing page, how many leads and how many weeks do we need, and how would we evaluate it? | Power analysis, simulated A/B test with known true effect, CI-based decision | The experiment data is **simulated** and clearly labelled; it is used to validate the method, not to claim results |
-| Q9 | **Marketplace activation** | How many won sellers make a first sale, how fast, and what predicts it? | Activation rate, time-to-first-sale, 90-day GMV | Order data ends Oct 2018, so only deals won before Jul 2018 get a full 90-day window |
+| Q9 | **Marketplace activation** | How many won sellers make a first sale, how fast, and what predicts it? | Activation rate, time-to-first-sale, 90-day GMV | Order items end on 3 Sep 2018 (later orders have no items), so only deals won before about 5 Jun 2018 get a full 90-day window |
 | Q10 | **Demand-side retention** | Do buyers come back? How does repeat-purchase behaviour look across cohorts? | Customer cohort retention matrix | Uses `customer_unique_id` (not `customer_id`, which is per order) |
 | Q11 | **Automated reporting** | Can the weekly GTM report build itself, so analyst time goes into recommendations? | Scripted KPI pipeline + LLM-generated summary of anomalies, reviewed by a human | The AI summary only describes pre-computed numbers and never computes them itself |
 
@@ -54,14 +54,14 @@ Source: Kaggle, *Marketing Funnel by Olist* + *Brazilian E-Commerce Public Datas
 |---|---|---|---|
 | Marketing qualified leads | 8,000 | Jun 2017 – May 2018 (first contact) | Q1–Q3, Q5–Q8 |
 | Closed deals | 842 | Dec 2017 – Nov 2018 (won date) | Q1, Q4, Q6, Q9 |
-| Orders | 99,441 | Sep 2016 – Oct 2018 | Q9, Q10 |
+| Orders | 99,441 | Sep 2016 – Oct 2018 (with items only until 3 Sep 2018) | Q9, Q10 |
 | Order items, sellers, customers, products, payments, reviews | — | — | Q9, Q10 |
 
 Headline numbers (from the initial data audit):
 
 - **Lead-to-win conversion:** 842 / 8,000 = **10.5%**
 - **Median sales cycle:** 14 days (mean 48, so a long tail)
-- **Seller activation:** only **45%** of won sellers ever make a sale (51% for deals won before Jul 2018)
+- **Seller activation:** only **45%** of won sellers ever make a sale (51% for sellers with a full 90-day window)
 - **Median time from close to first sale:** 44 days
 - **GMV concentration:** the top 10% of new sellers generate **83%** of the GMV of all new sellers in their first 90 days
 - **Buyer repeat rate:** only **3.1%** of customers order more than once
@@ -122,6 +122,7 @@ Documented up front, because a trustworthy data foundation starts with knowing i
 - **Right-censoring:** recent leads and deals have had less time to convert or activate, so fixed windows are used.
 - **One deal has a negative sales cycle** (won before first contact), which is flagged and excluded.
 - **Coverage gap:** closed deals start in Dec 2017 (see H1).
+- **Effective data end:** the last order is from 17 Oct 2018, but the last order *with items* is from 3 Sep 2018. All 90-day windows use the second date.
 - **Context:** Brazilian e-commerce, 2016–2018. The *methods* transfer to other marketplaces, but the absolute numbers do not.
 
 ---
@@ -130,20 +131,27 @@ Documented up front, because a trustworthy data foundation starts with knowing i
 
 ```text
 data/raw (CSV from Kaggle)
-      │  src/ingest.py        → load + schema checks
+      │  src/check_data.py    → files complete? row counts, keys, date ranges
+      │  src/profile_data.py  → profile per column (docs/data_profile.md)
+      │  src/clean.py         → types, hidden missing values, data-quality flags
       ▼
-data/processed (cleaned parquet)
-      │  src/clean.py         → types, dedup, outliers, data-quality flags
+data/processed (cleaned Parquet, raw files never changed)
+      │  src/warehouse.py     → runs the SQL below and validates grain and GMV
       ▼
-DuckDB (warehouse.duckdb)
-      │  sql/                 → staging → marts (fct_leads, fct_sellers, fct_orders)
+DuckDB (database/warehouse.duckdb)
+      │  sql/warehouse/       → staging → dimensions → facts
+      │                         (fct_leads, fct_order_items, fct_orders, fct_seller_activation)
+      │  sql/marts/           → KPI layer (mart_kpi_summary, mart_gtm_monthly,
+      │                         mart_channel_performance)
       ▼
-┌───────────────────────────┬──────────────────────────────┐
-│ app/ (Streamlit)          │ src/weekly_report.py         │
-│ interactive dashboard     │ automated KPI report         │
-│                           │ + AI summary (human-reviewed)│
-└───────────────────────────┴──────────────────────────────┘
+┌───────────────────────────┬──────────────────────────────┬──────────────────────────────┐
+│ analysis/ (done)          │ app/ (Streamlit, planned)    │ src/weekly_report.py (planned)│
+│ evidence per question     │ interactive dashboard EN/DE  │ automated KPI report         │
+│ → reports/analysis/       │                              │ + AI summary (human-reviewed)│
+└───────────────────────────┴──────────────────────────────┴──────────────────────────────┘
 ```
+
+KPI definitions in English and German: [docs/kpi_definitions.md](docs/kpi_definitions.md).
 
 **Stack:** Python (pandas, scipy, statsmodels), DuckDB (SQL), Streamlit + Plotly.
 
@@ -164,11 +172,19 @@ Every page ends with a **"So what?"** box: the recommendation, the evidence, and
 
 ## 9. Findings & recommendations
 
-*To be completed after the analysis. Format for each finding:*
+Ordered by priority: the first finding affects how reliable all the others are. All rates are from fair populations (2018 lead cohorts, sellers with a full 90-day window). The evidence for each row is in [reports/analysis/](reports/analysis/). Without marketing spend we cannot calculate CAC or ROI, so no row promises a money amount.
 
-| Finding | Evidence | Recommendation | Owner | Expected impact | Confidence |
-|---|---|---|---|---|---|
-| … | … | … | Marketing / Sales / Product | … | High / Medium / Low |
+| # | Finding | Evidence | Recommendation | Owner | Expected impact | How we measure | Confidence |
+|---|---|---|---|---|---|---|---|
+| 1 | **A quarter of all wins cannot be credited to a channel**, and most of the gap comes from one landing page | Untracked leads: 14.4 % of leads, but 25.2 % of 60-day wins (win rate 18.6 % vs 9.3 %). 62 % of them arrive via page `b76ef374`. Channel win rates move by up to 3 points depending on the assumption (4.1, 4.3, 4.4) | Fix source tracking on `b76ef374` first (UTM and referrer passed into the lead form), then make the channel a required field. Until then, no budget shifts between organic and paid search | Marketing Ops + Data Engineering | Most of the gap closed with one fix. Channel decisions based on the full funnel | `attributed_share` per month in `mart_gtm_monthly` | High |
+| 2 | **Trend reports can show changes that never happened** | Naive 2017 → 2018: 21× "improvement". Fair comparison (Jan–Feb vs Mar–Apr 2018): +0.9 points. Activation drops to 0 % for sellers won after May 2018 only because the data ends (4.4) | Start all trend charts in Jan 2018. Show months without complete tracking or without a full 90-day window greyed out. Every before/after comparison starts with a coverage check | Analytics (dashboard) + CPO | No false success or false alarm in management reporting | Dashboard uses `deal_tracking_complete` and `has_full_90d_window` everywhere | High |
+| 3 | **Social brings volume, not sellers** | 1,051 leads, win rate 4.7 % (CI 4–6 %), 22 activated sellers per 1,000 leads vs 57–69 for search. Stays lowest in all attribution scenarios. The social landing pages perform exactly as expected for the channel (4.1, 4.3, 4.4) | Review social targeting and spend together with the cost data. Do not redesign the social landing pages: the page is not the problem | Marketing | Budget moves to channels with about 3× more activated sellers per lead | Activated sellers per 1,000 leads by channel | Medium (no cost data) |
+| 4 | **Lead type and business type predict who will actually sell** | Activation: `online_big` 72 %, `offline` 34 %, `industry` 37 %. Holds in the regression (odds ratio `offline` 0.36, manufacturer 0.58). `online_big` = 15 % of sellers but 47 % of 90-day GMV; `offline` = 12 % of sellers, 2 % of GMV (4.2) | Sales: count activated sellers in targets, not only signed ones, and use lead type for prioritisation. Product: onboarding support for offline, industry and manufacturer sellers. Do not reject these leads: the model explains little (pseudo R² 0.06) | Sales + Product | More signed sellers who really sell. Less effort spent on deals that never activate | `seller_activation_rate_full_window` per lead type, new cohorts vs. earlier cohorts | High (pattern), Medium (effect of the action) |
+| 5 | **Deals that take long to close activate less** | Closed after more than 30 days: 43 % activation vs 56 % within a week (odds ratio 0.59, p = 0.02) (4.2) | Flag deals with a sales cycle over 30 days for an onboarding check-in in the first weeks | Sales + Product | Earlier help for hesitant sellers | Activation of flagged deals vs. earlier comparable deals | Medium |
+| 6 | **Two landing pages clearly beat their channel, one is clearly worse** | After channel adjustment and Benjamini-Hochberg correction, 3 of 18 pages differ (naive test: 8). `22c29808` +8.2 points, `40dec9f3` +6.8 points, `e492ee5e` −6.1 points (about 13 wins below expectation in 2018, upper bound) (4.3) | Find out what the two strong pages do differently and test those elements on `e492ee5e`. Measure the test on form completion, because lead-to-win is too slow to test (H6) | Marketing / Content + Product | Better conversion on an organic page with ~40 leads per month | Form completion rate in an A/B test, then 60-day win rate | Medium |
+| 7 | **Paid search does not convert better than organic search** | Win rate 11.6 % vs 11.5 % (p = 0.95). Activation 60 % vs 49 %, but p = 0.049 in an exploratory test and the ranking flips under attribution scenarios (4.1, 4.4) | Do not shift budget on "conversion". Re-check activation by channel after the tracking fix (#1) with new cohorts | Marketing | Avoids a budget decision based on noise | Activation by channel, new cohorts | Low |
+| 8 | **The data does not support a ranking of sales reps** | Raw activation per rep: 38–59 %. After adjusting for the lead mix: no difference (p = 0.47); no rep outside their interval (4.2) | Do not use raw activation per rep in performance reviews. If needed, report observed vs. expected for the lead mix | Sales leadership | Fair reviews; no blame for lead mix or chance | – | High |
+| 9 | **The behaviour profile does not predict activation** | `cat`, `eagle`, `wolf`, `shark`: no difference (p = 0.57) (4.2) | Ask Sales how much time the field costs. If it is used only for this purpose, stop maintaining it | Sales | Time saved in each deal | – | Medium |
 
 ---
 
@@ -182,20 +198,29 @@ python -m venv .venv
 pip install -r requirements.txt
 
 # 1. Download both Olist datasets from Kaggle and unzip all CSVs into data\raw\
-# 2. Check the download
+# 2. Check, profile and clean the data
 python src\check_data.py
+python src\profile_data.py
+python src\clean.py
+# 3. Build the DuckDB warehouse and KPI layer (stops if a validation fails)
+python src\warehouse.py
+# 4. Run the analyses (evidence goes to reports\analysis\)
+python analysis\01_channel_quality.py
+python analysis\02_win_vs_activation.py
+python analysis\03_landing_pages.py
+python analysis\04_tracking_data_quality.py
 ```
 
-Further scripts (pipeline, dashboard) are added step by step, see project status.
+The dashboard and the weekly report are added in Steps 6 and 7.
 
 ---
 
 ## 11. Project status
 
 - [x] Step 1: Setup, data download, data audit, business questions
-- [ ] Step 2: Profiling & cleaning
-- [ ] Step 3: Data model (DuckDB) & KPI layer
-- [ ] Step 4: Funnel, channel, segment & win/loss analysis
+- [x] Step 2: Profiling & cleaning
+- [x] Step 3: Data model (DuckDB) & KPI layer
+- [x] Step 4: Funnel, channel, segment & win/loss analysis, findings & recommendations
 - [ ] Step 5: Cohorts & experiment module
 - [ ] Step 6: Streamlit dashboard
 - [ ] Step 7: Automated weekly report with AI summary
