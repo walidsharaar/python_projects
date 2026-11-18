@@ -35,6 +35,8 @@ GRAIN = {
     "mart_kpi_summary": ["kpi_key"],
     "mart_gtm_monthly": ["cohort_month"],
     "mart_channel_performance": ["origin"],
+    "mart_buyer_retention": ["cohort_month", "month_number"],
+    "mart_seller_activation_curve": ["won_month", "window_days"],
 }
 
 
@@ -102,6 +104,18 @@ def validate(con) -> None:
     check(scalar(con, "SELECT COUNT(*) FROM mart_channel_performance "
                       "WHERE NOT lead_to_win_rate BETWEEN lead_to_win_ci_low AND lead_to_win_ci_high") == 0,
           "every channel rate lies inside its confidence interval")
+
+    # 6. Cohorts: month 0 is the first purchase, so it must be 100 % everywhere
+    check(scalar(con, "SELECT COUNT(*) FROM mart_buyer_retention "
+                      "WHERE month_number = 0 AND retention_rate <> 1") == 0,
+          "buyer retention: month 0 is 100 % in every cohort")
+    # Cohort sizes vs KPI summary. The KPI counts all non-canceled orders, the
+    # cohorts stop at the last full month, so the cohorts may only be smaller.
+    cohort_buyers = scalar(con, "SELECT SUM(cohort_customers) FROM mart_buyer_retention WHERE month_number = 0")
+    kpi_buyers = scalar(con, "SELECT denominator FROM mart_kpi_summary WHERE kpi_key = 'buyer_repeat_rate'")
+    check(0 <= kpi_buyers - cohort_buyers < 100,
+          f"buyer cohorts ({cohort_buyers:,}) match the KPI summary ({kpi_buyers:,.0f}) "
+          f"except buyers after the data end")
 
     if problems:
         raise SystemExit(f"\n{len(problems)} validation problem(s). Do not use this warehouse.")
