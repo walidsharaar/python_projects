@@ -147,9 +147,10 @@ DuckDB (database/warehouse.duckdb)
       │  sql/marts/           → KPI-Schicht
       ▼
 ┌───────────────────────────┬──────────────────────────────┬───────────────────────────────┐
-│ analysis/ (fertig)        │ app/ (Streamlit, geplant)    │ src/weekly_report.py (geplant)│
-│ Belege pro Frage          │ Dashboard auf DE und EN      │ automatischer KPI-Report      │
-│ → reports/analysis/       │                              │ + KI-Zusammenfassung          │
+│ analysis/                 │ app/ (Streamlit)             │ src/weekly_report.py          │
+│ Belege pro Frage          │ Dashboard auf EN / DE / FA   │ GTM-Report auf EN / DE / FA   │
+│ → reports/analysis/       │ Texte: src/i18n/             │ + optionale KI-Zusammenfassung│
+│ → data/results/           │                              │ → reports/weekly/             │
 └───────────────────────────┴──────────────────────────────┴───────────────────────────────┘
 ```
 
@@ -159,14 +160,16 @@ DuckDB (database/warehouse.duckdb)
 
 ## 8. Seiten im Dashboard
 
-1. **GTM-Überblick:** KPI-Kacheln, monatlicher Funnel, Trend im Vergleich zur Vorperiode
-2. **Kanäle & Attribution:** Conversion, Aktivierung und GMV pro Kanal, mit Konfidenzintervallen
-3. **Segmente & Win/Loss:** Segment-Benchmarks, Treiber für Abschluss und Aktivierung
-4. **Kohorten:** Lead-Kohorten (60-Tage-Conversion) und Retention-Matrix der Käufer
-5. **Experimente:** Stichproben-Rechner und Auswertung eines A/B-Tests (simuliert)
-6. **Empfehlungen:** die wichtigsten Maßnahmen, jeweils mit Beleg und erwarteter Wirkung
+Start mit `streamlit run app\Home.py`. In der Seitenleiste lässt sich die Sprache wählen: **English, Deutsch, فارسی / دری** (bei Persisch läuft der Text von rechts nach links). Auf Deutsch und Persisch zeigt die Hilfe zu jeder Kennzahl auch den englischen Begriff.
 
-Jede Seite endet mit einer **„Und jetzt?“-Box**: die Empfehlung, der Beleg dafür und wie sicher ich mir bin.
+1. **GTM-Überblick:** 7 KPI-Kacheln mit Zähler und Nenner, Leads und Win-Rate in 60 Tagen nach Monat (Monate ohne Erfassung grau)
+2. **Marketing & Kanäle:** Tracking-Lücke, Win-Rate pro Kanal mit 95-%-Konfidenzintervall, aktive Verkäufer pro 1.000 Leads, Landingpages im Vergleich mit ihrem Kanal-Mix (einfacher gegen korrigierten Test)
+3. **Verkäufer & Kohorten:** Aktivierung in 30 / 60 / 90 Tagen, Aktivierung und GMV-Anteil nach Lead-Typ, Heatmap zur Kundenbindung
+4. **Experimente:** Rechner für Stichprobe und Dauer (Startwerte aus dem echten Lead-Volumen), Auswertung eines fertigen A/B-Tests mit Entscheidungsregel
+5. **Empfehlungen:** die neun Ergebnisse, nach Team filterbar
+6. **Datenqualität:** jede bekannte Lücke mit betroffenen Datensätzen und den Kennzahlen, die sie beeinflusst
+
+Die meisten Seiten enden mit einer **„Und jetzt?“-Box**. Regeln hinter dem Dashboard: Es öffnet das Warehouse nur zum Lesen und mit einer kurzen Verbindung pro Abfrage (deshalb kann `src\warehouse.py` laufen, während es offen ist; danach „Daten neu laden“ klicken). Es berechnet selbst keine Kennzahl, und alle Texte stehen in `src/i18n/translations.json`.
 
 ---
 
@@ -181,7 +184,7 @@ Sortiert nach Priorität: Das erste Ergebnis entscheidet darüber, wie verlässl
 | 3 | **Social bringt Menge, aber keine Verkäufer** | 1.051 Leads, Win-Rate 4,7 % (KI 4–6 %), 22 aktive Verkäufer pro 1.000 Leads gegenüber 57–69 bei der Suche. Bleibt in allen Szenarien der schwächste große Kanal. Die Social-Landingpages sind genau so gut, wie man es für den Kanal erwartet (4.1, 4.3, 4.4) | Zielgruppen und Budget von Social zusammen mit den Kostendaten prüfen. Die Social-Landingpages nicht neu gestalten: Das Problem ist nicht die Seite | Marketing | Budget geht in Kanäle mit etwa dreimal mehr aktiven Verkäufern pro Lead | Aktive Verkäufer pro 1.000 Leads je Kanal | mittel (keine Kostendaten) |
 | 4 | **Lead-Typ und Geschäftstyp zeigen, wer wirklich verkaufen wird** | Aktivierung: `online_big` 72 %, `offline` 34 %, `industry` 37 %. Das gilt auch im Regressionsmodell (Odds Ratio `offline` 0,36, Hersteller 0,58). `online_big` sind 15 % der Verkäufer, bringen aber 47 % des 90-Tage-GMV. `offline` sind 12 % der Verkäufer und bringen 2 % (4.2) | Sales: In den Zielen aktive Verkäufer zählen, nicht nur unterschriebene, und den Lead-Typ zur Priorisierung nutzen. Product: Onboarding-Hilfe für Offline-, Industrie- und Hersteller-Kunden. Diese Leads nicht ablehnen: Das Modell erklärt nur wenig (Pseudo-R² 0,06) | Sales + Product | Mehr gewonnene Verkäufer, die wirklich verkaufen. Weniger Aufwand für Deals, die nie aktiv werden | `seller_activation_rate_full_window` pro Lead-Typ, neue Kohorten gegen frühere | hoch (Muster), mittel (Wirkung der Maßnahme) |
 | 5 | **Deals, die lange dauern, werden seltener aktiv** | Abschluss nach mehr als 30 Tagen: 43 % Aktivierung, Abschluss innerhalb einer Woche: 56 % (Odds Ratio 0,59, p = 0,02) (4.2) | Deals mit mehr als 30 Tagen Verkaufszyklus markieren und in den ersten Wochen ein Onboarding-Gespräch einplanen | Sales + Product | Unsichere Verkäufer bekommen früher Hilfe | Aktivierung der markierten Deals gegen frühere vergleichbare Deals | mittel |
-| 6 | **Zwei Landingpages sind klar besser als ihr Kanal, eine ist klar schlechter** | Nach Bereinigung um den Kanal und Benjamini-Hochberg-Korrektur unterscheiden sich 3 von 18 Seiten (ohne Korrektur: 8). `22c29808` +8,2 Punkte, `40dec9f3` +6,8 Punkte, `e492ee5e` −6,1 Punkte (2018 etwa 13 Abschlüsse unter Erwartung, Obergrenze) (4.3) | Herausfinden, was die zwei starken Seiten anders machen, und diese Elemente auf `e492ee5e` testen. Den Test über die Formular-Abschlüsse messen, weil Lead-to-Win zu langsam ist (H6) | Marketing / Content + Product | Bessere Conversion auf einer organischen Seite mit rund 40 Leads im Monat | Formular-Abschlussrate im A/B-Test, danach 60-Tage-Win-Rate | mittel |
+| 6 | **Zwei Landingpages sind klar besser als ihr Kanal, eine ist klar schlechter** | Nach Bereinigung um den Kanal und Benjamini-Hochberg-Korrektur unterscheiden sich 3 von 18 Seiten (ohne Korrektur: 8). `22c29808` +8,2 Punkte, `40dec9f3` +6,8 Punkte, `e492ee5e` −6,1 Punkte (2018 etwa 13 Abschlüsse unter Erwartung, Obergrenze) (4.3) | Herausfinden, was die zwei starken Seiten anders machen, und das ohne A/B-Test auf `e492ee5e` übernehmen: Bei rund 40 Leads im Monat würde sogar ein Test über die Formular-Abschlüsse länger als ein Jahr dauern (5.2). Einzelne Elemente lieber auf Seiten mit viel Traffic testen. Risiko: Ohne Kontrollgruppe kann eine spätere Veränderung auch von der Saison oder vom Kanal-Mix kommen | Marketing / Content + Product | Bessere Conversion auf einer organischen Seite mit rund 40 Leads im Monat | Win-Rate von `e492ee5e` im Vergleich zur Erwartung für ihren Kanal, ab den nächsten Kohorten | mittel |
 | 7 | **Paid Search konvertiert nicht besser als die organische Suche** | Win-Rate 11,6 % gegen 11,5 % (p = 0,95). Aktivierung 60 % gegen 49 %, aber p = 0,049 in einem explorativen Test, und die Reihenfolge dreht sich je nach Attributions-Szenario (4.1, 4.4) | Kein Budget wegen „besserer Conversion“ verschieben. Die Aktivierung pro Kanal nach der Tracking-Reparatur (#1) mit neuen Kohorten erneut prüfen | Marketing | Keine Budget-Entscheidung auf Basis von Zufall | Aktivierung pro Kanal, neue Kohorten | niedrig |
 | 8 | **Die Daten geben keine Rangliste der Vertriebsmitarbeiter her** | Aktivierung pro Mitarbeiter: 38–59 %. Nach Bereinigung um den Lead-Mix gibt es keinen Unterschied (p = 0,47), niemand liegt außerhalb seines Intervalls (4.2) | Die reine Aktivierungsrate pro Mitarbeiter nicht im Mitarbeitergespräch verwenden. Falls nötig, Ist gegen Erwartung für den jeweiligen Lead-Mix zeigen | Vertriebsleitung | Faire Bewertung, niemand wird für seinen Lead-Mix oder den Zufall verantwortlich gemacht | – | hoch |
 | 9 | **Das Verhaltensprofil sagt nichts über die Aktivierung** | `cat`, `eagle`, `wolf`, `shark`: kein Unterschied (p = 0,57) (4.2) | Mit Sales klären, wie viel Zeit das Feld kostet. Wenn es nur dafür gepflegt wird, darauf verzichten | Sales | Zeitersparnis in jedem Deal | – | mittel |
@@ -211,9 +214,14 @@ python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
 python analysis\05_cohorts.py
 python analysis\06_experiments.py
+# 5. Dashboard (Englisch, Deutsch, Persisch)
+streamlit run app\Home.py
+# 6. GTM-Report als Markdown in reports\weekly\ (mit --ai kommt eine optionale KI-Zusammenfassung dazu;
+#    dafür braucht es "pip install anthropic" und einen API-Schlüssel, der Report ist auch ohne sie vollständig)
+python src\weekly_report.py
+# 7. Tests: Übersetzungen, jede Dashboard-Seite in jeder Sprache, der Report
+python -m unittest discover tests
 ```
-
-Dashboard und Wochenreport kommen in Schritt 6 und 7 dazu.
 
 ---
 
@@ -224,8 +232,8 @@ Dashboard und Wochenreport kommen in Schritt 6 und 7 dazu.
 - [x] Schritt 3: Datenmodell (DuckDB) & KPI-Schicht
 - [x] Schritt 4: Funnel-, Kanal-, Segment- und Win/Loss-Analyse, Ergebnisse & Empfehlungen
 - [x] Schritt 5: Kohorten & Experiment-Modul
-- [ ] Schritt 6: Streamlit-Dashboard (Deutsch und Englisch)
-- [ ] Schritt 7: Automatischer Wochenreport mit KI-Zusammenfassung
+- [x] Schritt 6: Streamlit-Dashboard auf Englisch, Deutsch und Persisch (Farsi/Dari)
+- [x] Schritt 7: Automatischer GTM-Report in drei Sprachen mit optionaler KI-Zusammenfassung
 
 ---
 

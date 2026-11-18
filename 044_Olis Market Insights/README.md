@@ -145,9 +145,10 @@ DuckDB (database/warehouse.duckdb)
       │                         mart_channel_performance)
       ▼
 ┌───────────────────────────┬──────────────────────────────┬──────────────────────────────┐
-│ analysis/ (done)          │ app/ (Streamlit, planned)    │ src/weekly_report.py (planned)│
-│ evidence per question     │ interactive dashboard EN/DE  │ automated KPI report         │
-│ → reports/analysis/       │                              │ + AI summary (human-reviewed)│
+│ analysis/                 │ app/ (Streamlit)             │ src/weekly_report.py         │
+│ evidence per question     │ dashboard in EN / DE / FA    │ GTM report in EN / DE / FA   │
+│ → reports/analysis/       │ texts: src/i18n/             │ + optional AI summary        │
+│ → data/results/           │                              │ → reports/weekly/            │
 └───────────────────────────┴──────────────────────────────┴──────────────────────────────┘
 ```
 
@@ -159,14 +160,16 @@ KPI definitions in English and German: [docs/kpi_definitions.md](docs/kpi_defini
 
 ## 8. Dashboard pages
 
-1. **GTM overview:** KPI tiles, monthly funnel, trend vs. previous period
-2. **Channels & attribution:** conversion, activation and GMV per channel, with confidence intervals
-3. **Segments & win/loss:** segment benchmarks, drivers of winning and activation
-4. **Cohorts:** lead cohorts (60-day conversion) and buyer retention matrix
-5. **Experiments:** sample-size calculator + A/B test evaluation (simulated)
-6. **Recommendations:** the top actions, each with evidence and expected impact
+Start with `streamlit run app\Home.py`. Language selector in the sidebar: **English, Deutsch, فارسی / دری** (Persian switches the layout to right to left). In German and Persian, every KPI's help text also shows the English term.
 
-Every page ends with a **"So what?"** box: the recommendation, the evidence, and the confidence level.
+1. **GTM overview:** 7 KPI tiles with numerator and denominator, leads and 60-day win rate by month (untracked months greyed out)
+2. **Marketing & channels:** tracking gap, win rate per channel with 95 % confidence interval, activated sellers per 1,000 leads, landing pages against their channel mix (naive vs. corrected test)
+3. **Sellers & cohorts:** activation within 30 / 60 / 90 days, activation and GMV share by lead type, buyer retention heatmap
+4. **Experiments:** sample size and duration calculator (defaults from the real lead volume), evaluation of a finished A/B test with a decision rule
+5. **Recommendations:** the nine findings, filterable by team
+6. **Data quality:** every known gap with records affected and the KPIs it affects
+
+Most pages end with a **"So what?"** box. Rules behind the dashboard: it opens the warehouse read-only with a short connection per query (so `src\warehouse.py` can run while it is open; use "Reload data" afterwards), it calculates no KPI itself, and all display text lives in `src/i18n/translations.json`.
 
 ---
 
@@ -181,7 +184,7 @@ Ordered by priority: the first finding affects how reliable all the others are. 
 | 3 | **Social brings volume, not sellers** | 1,051 leads, win rate 4.7 % (CI 4–6 %), 22 activated sellers per 1,000 leads vs 57–69 for search. Stays lowest in all attribution scenarios. The social landing pages perform exactly as expected for the channel (4.1, 4.3, 4.4) | Review social targeting and spend together with the cost data. Do not redesign the social landing pages: the page is not the problem | Marketing | Budget moves to channels with about 3× more activated sellers per lead | Activated sellers per 1,000 leads by channel | Medium (no cost data) |
 | 4 | **Lead type and business type predict who will actually sell** | Activation: `online_big` 72 %, `offline` 34 %, `industry` 37 %. Holds in the regression (odds ratio `offline` 0.36, manufacturer 0.58). `online_big` = 15 % of sellers but 47 % of 90-day GMV; `offline` = 12 % of sellers, 2 % of GMV (4.2) | Sales: count activated sellers in targets, not only signed ones, and use lead type for prioritisation. Product: onboarding support for offline, industry and manufacturer sellers. Do not reject these leads: the model explains little (pseudo R² 0.06) | Sales + Product | More signed sellers who really sell. Less effort spent on deals that never activate | `seller_activation_rate_full_window` per lead type, new cohorts vs. earlier cohorts | High (pattern), Medium (effect of the action) |
 | 5 | **Deals that take long to close activate less** | Closed after more than 30 days: 43 % activation vs 56 % within a week (odds ratio 0.59, p = 0.02) (4.2) | Flag deals with a sales cycle over 30 days for an onboarding check-in in the first weeks | Sales + Product | Earlier help for hesitant sellers | Activation of flagged deals vs. earlier comparable deals | Medium |
-| 6 | **Two landing pages clearly beat their channel, one is clearly worse** | After channel adjustment and Benjamini-Hochberg correction, 3 of 18 pages differ (naive test: 8). `22c29808` +8.2 points, `40dec9f3` +6.8 points, `e492ee5e` −6.1 points (about 13 wins below expectation in 2018, upper bound) (4.3) | Find out what the two strong pages do differently and test those elements on `e492ee5e`. Measure the test on form completion, because lead-to-win is too slow to test (H6) | Marketing / Content + Product | Better conversion on an organic page with ~40 leads per month | Form completion rate in an A/B test, then 60-day win rate | Medium |
+| 6 | **Two landing pages clearly beat their channel, one is clearly worse** | After channel adjustment and Benjamini-Hochberg correction, 3 of 18 pages differ (naive test: 8). `22c29808` +8.2 points, `40dec9f3` +6.8 points, `e492ee5e` −6.1 points (about 13 wins below expectation in 2018, upper bound) (4.3) | Find out what the two strong pages do differently and apply it to `e492ee5e` without an A/B test: at about 40 leads a month, even a test on form completion would take more than a year (5.2). Test single elements on high-traffic pages instead. Risk: without a control group, a later change can also come from season or channel mix | Marketing / Content + Product | Better conversion on an organic page with ~40 leads per month | Win rate of `e492ee5e` against its channel expectation, from the next cohorts on | Medium |
 | 7 | **Paid search does not convert better than organic search** | Win rate 11.6 % vs 11.5 % (p = 0.95). Activation 60 % vs 49 %, but p = 0.049 in an exploratory test and the ranking flips under attribution scenarios (4.1, 4.4) | Do not shift budget on "conversion". Re-check activation by channel after the tracking fix (#1) with new cohorts | Marketing | Avoids a budget decision based on noise | Activation by channel, new cohorts | Low |
 | 8 | **The data does not support a ranking of sales reps** | Raw activation per rep: 38–59 %. After adjusting for the lead mix: no difference (p = 0.47); no rep outside their interval (4.2) | Do not use raw activation per rep in performance reviews. If needed, report observed vs. expected for the lead mix | Sales leadership | Fair reviews; no blame for lead mix or chance | – | High |
 | 9 | **The behaviour profile does not predict activation** | `cat`, `eagle`, `wolf`, `shark`: no difference (p = 0.57) (4.2) | Ask Sales how much time the field costs. If it is used only for this purpose, stop maintaining it | Sales | Time saved in each deal | – | Medium |
@@ -211,9 +214,14 @@ python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
 python analysis\05_cohorts.py
 python analysis\06_experiments.py
+# 5. Dashboard (English, German, Persian)
+streamlit run app\Home.py
+# 6. GTM report as Markdown in reports\weekly\ (add --ai for an optional AI summary;
+#    that needs "pip install anthropic" and an API key, the report is complete without it)
+python src\weekly_report.py
+# 7. Tests: translations, every dashboard page in every language, the report
+python -m unittest discover tests
 ```
-
-The dashboard and the weekly report are added in Steps 6 and 7.
 
 ---
 
@@ -224,8 +232,8 @@ The dashboard and the weekly report are added in Steps 6 and 7.
 - [x] Step 3: Data model (DuckDB) & KPI layer
 - [x] Step 4: Funnel, channel, segment & win/loss analysis, findings & recommendations
 - [x] Step 5: Cohorts & experiment module
-- [ ] Step 6: Streamlit dashboard
-- [ ] Step 7: Automated weekly report with AI summary
+- [x] Step 6: Streamlit dashboard in English, German and Persian (Farsi/Dari)
+- [x] Step 7: Automated GTM report in three languages with optional AI summary
 
 ---
 
