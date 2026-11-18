@@ -41,6 +41,7 @@ GRAIN = {
     "mart_executive_funnel": ["stage_key"],
     "mart_opportunities": ["action_key"],
     "mart_channel_scorecard": ["origin"],
+    "mart_channel_monthly": ["cohort_month", "channel_group"],
 }
 
 

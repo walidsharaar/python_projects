@@ -80,6 +80,10 @@ def channel_scorecard() -> pd.DataFrame:
     return query("SELECT * FROM mart_channel_scorecard")
 
 
+def channel_monthly() -> pd.DataFrame:
+    return query("SELECT * FROM mart_channel_monthly ORDER BY cohort_month")
+
+
 def data_quality() -> pd.DataFrame:
     return query("SELECT * FROM mart_data_quality")
 

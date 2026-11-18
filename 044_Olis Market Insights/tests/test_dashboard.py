@@ -27,7 +27,7 @@ MISSING_TEXT = re.compile(r"\[[a-z_]+\.[a-z0-9_.]+\]")
 
 # page file -> (number of KPI tiles, number of charts: funnel + channel chart)
 PAGES = {
-    "views/executive.py": (4, 2),
+    "views/executive.py": (8, 8),
 }
 
 

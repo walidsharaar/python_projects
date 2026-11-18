@@ -269,7 +269,21 @@
       "mkt.pages.fix": "**Fix tracking on page {page}:** {share} of all leads without a channel arrive there.",
       "mkt.pages.learn": "**Learn from page {page}:** contract rate {rate}, while {expected} is expected for its channels.",
       "mkt.pages.weak": "**Improve page {page}:** contract rate {rate}, while {expected} is expected for its channels.",
-      "mkt.month.title": "Latest month"
+      "mkt.month.title": "Latest month",
+      "x.trend.leads": "New leads per month",
+      "x.trend.rate": "Contract rate by month",
+      "x.impact.title": "Active sellers at stake per action",
+      "x.impact.axis": "Active sellers",
+      "x.types.title": "Who starts selling, by business type",
+      "x.quad.title": "Channel quality (bubble size = leads)",
+      "x.quad.x": "Contract rate",
+      "x.quad.y": "Activation rate",
+      "x.mix.title": "Lead mix by channel per month",
+      "x.pages.title": "Landing pages: actual vs. expected contract rate",
+      "x.pages.actual": "Actual",
+      "x.pages.expected": "Expected for its channels",
+      "x.table.title": "Channel scorecard",
+      "x.avg": "Average"
     },
     "de": {
       "app.title": "Marketplace GTM Analytics",
@@ -526,7 +540,21 @@
       "mkt.pages.fix": "**Tracking auf Seite {page} reparieren:** {share} aller Leads ohne Kanal kommen dort an.",
       "mkt.pages.learn": "**Von Seite {page} lernen:** Vertragsquote {rate}, erwartet für ihre Kanäle sind {expected}.",
       "mkt.pages.weak": "**Seite {page} verbessern:** Vertragsquote {rate}, erwartet für ihre Kanäle sind {expected}.",
-      "mkt.month.title": "Letzter Monat"
+      "mkt.month.title": "Letzter Monat",
+      "x.trend.leads": "Neue Leads pro Monat",
+      "x.trend.rate": "Vertragsquote pro Monat",
+      "x.impact.title": "Aktive Verkäufer, die pro Maßnahme auf dem Spiel stehen",
+      "x.impact.axis": "Aktive Verkäufer",
+      "x.types.title": "Wer zu verkaufen beginnt, nach Art des Geschäfts",
+      "x.quad.title": "Qualität der Kanäle (Blasengröße = Leads)",
+      "x.quad.x": "Vertragsquote",
+      "x.quad.y": "Aktivierungsrate",
+      "x.mix.title": "Lead-Mix nach Kanal pro Monat",
+      "x.pages.title": "Landingpages: tatsächliche gegen erwartete Vertragsquote",
+      "x.pages.actual": "Tatsächlich",
+      "x.pages.expected": "Erwartet für ihre Kanäle",
+      "x.table.title": "Kanal-Scorecard",
+      "x.avg": "Durchschnitt"
     },
     "fa": {
       "app.title": "تحلیل GTM مارکت‌پلیس",
@@ -783,7 +811,21 @@
       "mkt.pages.fix": "**ردیابی صفحه‌ی {page} را درست کنید:** {share} از همه‌ی لیدهای بدون کانال از آنجا می‌آیند.",
       "mkt.pages.learn": "**از صفحه‌ی {page} یاد بگیرید:** نرخ قرارداد {rate}، در حالی که برای کانال‌هایش {expected} انتظار می‌رود.",
       "mkt.pages.weak": "**صفحه‌ی {page} را بهتر کنید:** نرخ قرارداد {rate}، در حالی که برای کانال‌هایش {expected} انتظار می‌رود.",
-      "mkt.month.title": "آخرین ماه"
+      "mkt.month.title": "آخرین ماه",
+      "x.trend.leads": "لیدهای تازه در هر ماه",
+      "x.trend.rate": "نرخ قرارداد در هر ماه",
+      "x.impact.title": "فروشندگان فعالِ در خطر برای هر اقدام",
+      "x.impact.axis": "فروشندگان فعال",
+      "x.types.title": "چه کسی شروع به فروش می‌کند، بر اساس نوع کسب‌وکار",
+      "x.quad.title": "کیفیت کانال‌ها (اندازه‌ی حباب = لیدها)",
+      "x.quad.x": "نرخ قرارداد",
+      "x.quad.y": "نرخ فعال‌شدن",
+      "x.mix.title": "ترکیب لیدها بر اساس کانال در هر ماه",
+      "x.pages.title": "صفحه‌های فرود: نرخ قرارداد واقعی در برابر مورد انتظار",
+      "x.pages.actual": "واقعی",
+      "x.pages.expected": "مورد انتظار برای کانال‌هایش",
+      "x.table.title": "کارنامه‌ی کانال‌ها",
+      "x.avg": "میانگین"
     }
   }
 }
