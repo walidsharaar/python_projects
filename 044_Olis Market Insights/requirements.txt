@@ -5,3 +5,4 @@ plotly
 streamlit
 scipy
 statsmodels
+pyarrow
