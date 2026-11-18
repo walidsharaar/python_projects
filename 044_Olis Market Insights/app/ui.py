@@ -57,14 +57,11 @@ def apply_direction() -> None:
         )
 
 
-def kpi_tile(column, kpis, key: str, delta: str | None = None, delta_note: str | None = None,
-             spark: list | None = None) -> None:
-    """One KPI tile: value, how it is calculated, the basis (numerator/denominator), help text.
+def kpi_tile(column, kpis, key: str) -> None:
+    """One KPI tile: value, basis (numerator/denominator) and a help text.
 
-    The calculation (exec.formula.<key>) and the basis are in the help tooltip (?),
-    so the tile stays clean but anyone can answer "how did you calculate this?".
-    In German and Persian the help also shows the English term.
-    delta: an optional change, e.g. "-3.6 pts"; spark: values for a small trend line.
+    In German and Persian the help text also shows the English term, so the
+    dashboard teaches the vocabulary used in international teams.
     """
     row = kpis.loc[key]
     code = lang()
@@ -83,8 +80,6 @@ def kpi_tile(column, kpis, key: str, delta: str | None = None, delta_note: str |
     help_text = tr(f"kpi.{key}.help")
     if code != "en":
         help_text += "\n\n" + tr("common.english_term", term=t(f"kpi.{key}.name", "en"))
-    # The formula goes into the help tooltip (?), so the tile stays clean
-    how = tr("exec.how", formula=tr(f"exec.formula.{key}")) + (f" ({basis})" if basis else "")
-    help_text = how + "\n\n" + help_text
-    column.metric(tr(f"kpi.{key}.name"), value, delta=delta, help=help_text, border=True,
-                  delta_description=delta_note, chart_data=spark, chart_type="line")
+    column.metric(tr(f"kpi.{key}.name"), value, help=help_text, border=True)
+    if basis:
+        column.caption(basis)

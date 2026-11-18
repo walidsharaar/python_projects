@@ -7,9 +7,9 @@ _Automatisch erstellt am 19. Nov. 2026 aus der KPI-Schicht (database/warehouse.d
 | Kennzahl | Wert | Basis |
 |---|---|---|
 | MQLs | 8.000 |  |
-| Vertragsquote (60 Tage) | 10,6 % | 636 von 5.998 |
+| Lead-to-Win-Rate (60 Tage) | 10,6 % | 636 von 5.998 |
 | Verkaufszyklus (Median) | 14 Tage | n = 841 |
-| Verträge ohne bekannten Kanal | 25,2 % | 160 von 636 |
+| Abschlüsse ohne Kanal | 25,2 % | 160 von 636 |
 | Aktivierungsrate der Verkäufer | 51,4 % | 345 von 671 |
 | Zeit bis zum ersten Verkauf (Median) | 44 Tage | n = 379 |
 | GMV in 90 Tagen pro gewonnenem Verkäufer | 507 BRL | n = 671 |
@@ -20,7 +20,7 @@ _Automatisch erstellt am 19. Nov. 2026 aus der KPI-Schicht (database/warehouse.d
 Nur Lead-Monate mit vollständig erfassten Abschlüssen. Der letzte Monat wird mit allen früheren erfassten Monaten zusammen verglichen, mit einem Test für zwei Anteile.
 
 - Leads im Mai 2018: 1.303 (−3,6 % im Vergleich zum Vormonat).
-- Vertragsquote (60 Tage) im Mai 2018: 7,8 %. Frühere erfasste Monate zusammen: 11,4 % (p < 0,001).
+- Win-Rate in 60 Tagen im Mai 2018: 7,8 %. Frühere erfasste Monate zusammen: 11,4 % (p < 0,001).
 
 > Deutliche Veränderung: Der Unterschied ist wahrscheinlich kein Zufall. Zuerst prüfen, ob er echt ist (Tracking, Kanal-Mix, eine neue Landingpage), bevor jemand handelt.
 
@@ -29,7 +29,7 @@ Nur Lead-Monate mit vollständig erfassten Abschlüssen. Der letzte Monat wird m
 Bekannte Lücken, die mindestens 5 % ihrer Datensätze betreffen. Alle Zahlen in diesem Report berücksichtigen sie schon.
 
 - Deals ohne angegebenen Umsatz (0 in der Quelle): 797 von 842 (94,7 %). Betrifft: Jedes Lead-Scoring auf Basis des Umsatzes.
-- Leads aus Monaten ohne Erfassung der Abschlüsse: 2.002 von 8.000 (25,0 %). Betrifft: Monatliche Trends der Vertragsquote.
+- Leads aus Monaten ohne Erfassung der Abschlüsse: 2.002 von 8.000 (25,0 %). Betrifft: Monatliche Trends der Win-Rate.
 - Gewonnene Deals ohne Verhaltensprofil: 177 von 842 (21,0 %). Betrifft: Analyse des Verhaltens.
 - Verkäufer ohne volles 90-Tage-Fenster: 171 von 842 (20,3 %). Betrifft: Aktivierung und GMV in 90 Tagen.
 - Leads ohne Kanal: 1.159 von 8.000 (14,5 %). Betrifft: Vergleich der Kanäle.

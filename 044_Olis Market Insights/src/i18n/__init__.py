@@ -1,7 +1,7 @@
 """Translations and number formatting for the dashboard and reports.
 
 All display text lives in translations.json, one key per text:
-    t("exec.title", "de")  ->  "Vom Lead zum aktiven Verkäufer"
+    t("overview.title", "de")  ->  "GTM-Überblick"
 
 Code, SQL and column names stay English. Only what a person READS is
 translated. Changing the language never changes a calculation.
