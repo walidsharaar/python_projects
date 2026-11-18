@@ -38,3 +38,44 @@ def chi_square(df: pd.DataFrame, group: str, outcome: str) -> tuple[float, int, 
     """Is the outcome independent of the group? Returns chi2, df, p."""
     chi2, p, dof, _ = chi2_contingency(pd.crosstab(df[group], df[outcome]))
     return float(chi2), int(dof), float(p)
+
+
+# ------------------------------------------------------------ experiments
+# Used by analysis/06_experiments.py and later by the dashboard's
+# sample size calculator, so both always give the same answer.
+
+def sample_size_per_group(p_control: float, p_test: float,
+                          alpha: float = 0.05, power: float = 0.80) -> int:
+    """Leads needed IN EACH GROUP to detect p_control -> p_test (two-sided)."""
+    from math import ceil
+    from statsmodels.stats.power import NormalIndPower
+    from statsmodels.stats.proportion import proportion_effectsize
+
+    effect = proportion_effectsize(p_test, p_control)      # Cohen's h
+    n = NormalIndPower().solve_power(effect_size=effect, alpha=alpha, power=power,
+                                     ratio=1.0, alternative="two-sided")
+    return ceil(n)
+
+
+def minimum_detectable_rate(p_control: float, n_per_group: int,
+                            alpha: float = 0.05, power: float = 0.80) -> float:
+    """Smallest test rate (above p_control) a test with n_per_group can reliably detect."""
+    from math import asin, sin, sqrt
+    from statsmodels.stats.power import NormalIndPower
+
+    h = NormalIndPower().solve_power(nobs1=n_per_group, alpha=alpha, power=power,
+                                     ratio=1.0, alternative="two-sided")
+    return sin(asin(sqrt(p_control)) + h / 2) ** 2           # invert Cohen's h
+
+
+def evaluate_ab(won_a: int, n_a: int, won_b: int, n_b: int) -> dict:
+    """Evaluate a finished A/B test: difference B - A, its 95 % interval, p-value."""
+    from statsmodels.stats.proportion import (confint_proportions_2indep,
+                                              test_proportions_2indep)
+
+    low, high = confint_proportions_2indep(won_b, n_b, won_a, n_a,
+                                           compare="diff", method="newcomb")
+    p = test_proportions_2indep(won_b, n_b, won_a, n_a).pvalue
+    return {"rate_a": won_a / n_a, "rate_b": won_b / n_b,
+            "diff": won_b / n_b - won_a / n_a,
+            "ci_low": float(low), "ci_high": float(high), "p_value": float(p)}
