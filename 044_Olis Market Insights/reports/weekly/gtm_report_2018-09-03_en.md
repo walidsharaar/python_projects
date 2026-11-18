@@ -1,15 +1,15 @@
 # GTM report: 3 Sep 2018
 
-_Created automatically on 18 Nov 2026 from the KPI layer (database/warehouse.duckdb). Data: real public data from Olist, effective data end 3 Sep 2018._
+_Created automatically on 19 Nov 2026 from the KPI layer (database/warehouse.duckdb). Data: real public data from Olist, effective data end 3 Sep 2018._
 
 ## 1. Main KPIs
 
 | KPI | Value | Basis |
 |---|---|---|
 | MQLs | 8,000 |  |
-| Lead-to-win rate (60 days) | 10.6% | 636 of 5,998 |
+| Contract rate (60 days) | 10.6% | 636 of 5,998 |
 | Sales cycle (median) | 14 days | n = 841 |
-| Wins without a channel | 25.2% | 160 of 636 |
+| Contracts without a known channel | 25.2% | 160 of 636 |
 | Seller activation rate | 51.4% | 345 of 671 |
 | Time to first sale (median) | 44 days | n = 379 |
 | 90-day GMV per won seller | 507 BRL | n = 671 |
@@ -20,7 +20,7 @@ _Created automatically on 18 Nov 2026 from the KPI layer (database/warehouse.duc
 Only lead months with complete deal tracking. The latest month is compared with all earlier tracked months together, with a two-proportion test.
 
 - Leads in May 2018: 1,303 (−3.6% compared with the month before).
-- 60-day win rate in May 2018: 7.8%. Earlier tracked months together: 11.4% (p = 0.000).
+- Contract rate (60 days) in May 2018: 7.8%. Earlier tracked months together: 11.4% (p < 0.001).
 
 > Clear change: the difference is unlikely to be chance. Check first whether it is real (tracking, channel mix, a new landing page) before acting on it.
 
@@ -29,7 +29,7 @@ Only lead months with complete deal tracking. The latest month is compared with 
 Known gaps that affect at least 5% of their records. All numbers in this report already take them into account.
 
 - Deals without declared revenue (0 in the source): 797 of 842 (94.7%). Affects: Any lead scoring based on revenue.
-- Leads from months without deal tracking: 2,002 of 8,000 (25.0%). Affects: Monthly trends of the win rate.
+- Leads from months without deal tracking: 2,002 of 8,000 (25.0%). Affects: Monthly trends of the contract rate.
 - Won deals without behaviour profile: 177 of 842 (21.0%). Affects: Behaviour analysis.
 - Sellers without a full 90-day window: 171 of 842 (20.3%). Affects: Activation and 90-day GMV.
 - Leads without a channel: 1,159 of 8,000 (14.5%). Affects: Channel comparison.

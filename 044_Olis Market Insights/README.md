@@ -158,18 +158,49 @@ KPI definitions in English and German: [docs/kpi_definitions.md](docs/kpi_defini
 
 ---
 
-## 8. Dashboard pages
+## 8. The executive screen
 
-Start with `streamlit run app\Home.py`. Language selector in the sidebar: **English, Deutsch, فارسی / دری** (Persian switches the layout to right to left). In German and Persian, every KPI's help text also shows the English term.
+One screen, built like a story: **what is the problem → why → what do we do → how will we know.** Start it with `streamlit run app\Home.py`. Language selector in the sidebar: **English, Deutsch, فارسی / دری** (Persian runs right to left).
 
-1. **GTM overview:** 7 KPI tiles with numerator and denominator, leads and 60-day win rate by month (untracked months greyed out)
-2. **Marketing & channels:** tracking gap, win rate per channel with 95 % confidence interval, activated sellers per 1,000 leads, landing pages against their channel mix (naive vs. corrected test)
-3. **Sellers & cohorts:** activation within 30 / 60 / 90 days, activation and GMV share by lead type, buyer retention heatmap
-4. **Experiments:** sample size and duration calculator (defaults from the real lead volume), evaluation of a finished A/B test with a decision rule
-5. **Recommendations:** the nine findings, filterable by team
-6. **Data quality:** every known gap with records affected and the KPIs it affects
+1. **Headline:** one sentence with live numbers: "Of every 1,000 new leads, about 106 sign a contract and about 55 start selling."
+2. **Five KPIs**, each with *how it is calculated* written under the number:
 
-Most pages end with a **"So what?"** box. Rules behind the dashboard: it opens the warehouse read-only with a short connection per query (so `src\warehouse.py` can run while it is open; use "Reload data" afterwards), it calculates no KPI itself, and all display text lives in `src/i18n/translations.json`.
+   | KPI | How it is calculated | Why it matters |
+   |---|---|---|
+   | New leads per month | new leads in fully tracked months ÷ number of months | Volume coming from Marketing |
+   | Contract rate (60 days) | leads that signed within 60 days ÷ all leads | Does Sales turn leads into contracts? |
+   | Seller activation rate | signed sellers with at least one order ÷ all signed sellers | A contract only has value if the seller sells |
+   | Time to first sale (median) | middle value of the days from contract to first order | How fast onboarding works |
+   | Contracts without a known channel | contracts from leads without a channel ÷ all contracts | Can we trust the channel numbers? |
+
+3. **Funnel:** what happens to 1,000 new leads.
+4. **Four questions**, each with one chart, details for one chosen item, and a card *What happened / Why / What to do / How we will know / Who acts*.
+5. **Ask the data:** a free, local AI model (Ollama) answers questions using only the numbers on the screen.
+6. **Glossary:** every technical word (MQL, GMV, median, confidence interval, p-value, cohort, A/B test …) in one plain sentence.
+
+Rules behind it: the screen opens the warehouse read-only, calculates no KPI itself (all numbers come from `sql/marts/`), and all texts live in `src/i18n/translations.json`.
+
+### How the screen answers the job description
+
+| On the screen | What the job asks for |
+|---|---|
+| KPIs and funnel | "Du überwachst laufend unsere GTM-Performance … von Funnel-Analysen über Kanal-Performance bis zu Conversion-Raten" |
+| 1. Which channels bring sellers who really sell? | "Kanal-Performance", "Traffic-Kanäle optimieren" |
+| 2. Who starts selling after signing? | "Cohort- und Funnel-Analysen über Kundensegmente", "Win/Loss-Analysen … für unser Sales Enablement" |
+| 3. Is something changing right now? | "Mit Vorher-/Nachher-Vergleichen misst Du, ob Maßnahmen wirklich wirken" |
+| 4. Can we trust the numbers? | "eine gemeinsame Datenbasis, auf die sich alle verlassen können" |
+| Story cards | "immer mit konkreten Handlungsempfehlungen statt reinen Reports" |
+| Ask the data and the GTM report | "KI- und automatisierungsgestützte Reporting-Infrastruktur" |
+| A/B test planning (analysis 06) | "Hypothesen … in Experimente und A/B-Tests übersetzen" |
+
+### Ask the data: setup (once, free)
+
+```powershell
+winget install Ollama.Ollama
+ollama pull gemma3:4b
+```
+
+Ollama then runs in the background. The model runs on the laptop, so no data leaves it and no API key is needed. Another model can be set with the environment variable `OLLAMA_MODEL`. Without Ollama, the screen shows these instructions instead of the question box.
 
 ---
 
@@ -214,12 +245,12 @@ python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
 python analysis\05_cohorts.py
 python analysis\06_experiments.py
-# 5. Dashboard (English, German, Persian)
+# 5. Executive screen (English, German, Persian)
 streamlit run app\Home.py
 # 6. GTM report as Markdown in reports\weekly\ (add --ai for an optional AI summary;
 #    that needs "pip install anthropic" and an API key, the report is complete without it)
 python src\weekly_report.py
-# 7. Tests: translations, every dashboard page in every language, the report
+# 7. Tests: translations, the executive screen in every language, the report
 python -m unittest discover tests
 ```
 

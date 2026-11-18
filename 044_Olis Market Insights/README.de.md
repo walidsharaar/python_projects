@@ -158,18 +158,49 @@ DuckDB (database/warehouse.duckdb)
 
 ---
 
-## 8. Seiten im Dashboard
+## 8. Der Bildschirm für die Geschäftsführung
 
-Start mit `streamlit run app\Home.py`. In der Seitenleiste lässt sich die Sprache wählen: **English, Deutsch, فارسی / دری** (bei Persisch läuft der Text von rechts nach links). Auf Deutsch und Persisch zeigt die Hilfe zu jeder Kennzahl auch den englischen Begriff.
+Ein einziger Bildschirm, aufgebaut wie eine Geschichte: **Was ist das Problem → warum → was tun wir → woran merken wir es.** Start mit `streamlit run app\Home.py`. In der Seitenleiste lässt sich die Sprache wählen: **English, Deutsch, فارسی / دری** (Persisch läuft von rechts nach links).
 
-1. **GTM-Überblick:** 7 KPI-Kacheln mit Zähler und Nenner, Leads und Win-Rate in 60 Tagen nach Monat (Monate ohne Erfassung grau)
-2. **Marketing & Kanäle:** Tracking-Lücke, Win-Rate pro Kanal mit 95-%-Konfidenzintervall, aktive Verkäufer pro 1.000 Leads, Landingpages im Vergleich mit ihrem Kanal-Mix (einfacher gegen korrigierten Test)
-3. **Verkäufer & Kohorten:** Aktivierung in 30 / 60 / 90 Tagen, Aktivierung und GMV-Anteil nach Lead-Typ, Heatmap zur Kundenbindung
-4. **Experimente:** Rechner für Stichprobe und Dauer (Startwerte aus dem echten Lead-Volumen), Auswertung eines fertigen A/B-Tests mit Entscheidungsregel
-5. **Empfehlungen:** die neun Ergebnisse, nach Team filterbar
-6. **Datenqualität:** jede bekannte Lücke mit betroffenen Datensätzen und den Kennzahlen, die sie beeinflusst
+1. **Schlagzeile:** ein Satz mit echten Zahlen: „Von 1.000 neuen Leads unterschreiben etwa 106 einen Vertrag, und etwa 55 beginnen zu verkaufen.“
+2. **Fünf Kennzahlen**, unter jeder Zahl steht, *wie sie berechnet wird*:
 
-Die meisten Seiten enden mit einer **„Und jetzt?“-Box**. Regeln hinter dem Dashboard: Es öffnet das Warehouse nur zum Lesen und mit einer kurzen Verbindung pro Abfrage (deshalb kann `src\warehouse.py` laufen, während es offen ist; danach „Daten neu laden“ klicken). Es berechnet selbst keine Kennzahl, und alle Texte stehen in `src/i18n/translations.json`.
+   | Kennzahl | So wird sie berechnet | Warum sie wichtig ist |
+   |---|---|---|
+   | Neue Leads pro Monat | neue Leads in vollständig erfassten Monaten ÷ Anzahl der Monate | Menge, die vom Marketing kommt |
+   | Vertragsquote (60 Tage) | Leads mit Vertrag innerhalb von 60 Tagen ÷ alle Leads | Macht der Vertrieb aus Leads Verträge? |
+   | Aktivierungsrate der Verkäufer | Verkäufer mit Vertrag und mindestens einer Bestellung ÷ alle Verkäufer mit Vertrag | Ein Vertrag ist nur etwas wert, wenn der Verkäufer verkauft |
+   | Zeit bis zum ersten Verkauf (Median) | mittlerer Wert der Tage vom Vertrag bis zur ersten Bestellung | Wie schnell das Onboarding läuft |
+   | Verträge ohne bekannten Kanal | Verträge von Leads ohne Kanal ÷ alle Verträge | Können wir den Kanalzahlen trauen? |
+
+3. **Funnel:** was aus 1.000 neuen Leads wird.
+4. **Vier Fragen**, jede mit einer Grafik, Details für einen gewählten Eintrag und einer Karte *Was passiert ist / Warum / Was wir tun / Woran wir es merken / Wer handelt*.
+5. **Frag die Daten:** ein kostenloses, lokales KI-Modell (Ollama) beantwortet Fragen und nutzt nur die Zahlen auf dem Bildschirm.
+6. **Begriffe:** jedes Fachwort (MQL, GMV, Median, Konfidenzintervall, p-Wert, Kohorte, A/B-Test …) in einem einfachen Satz.
+
+Die Regeln dahinter: Der Bildschirm öffnet das Warehouse nur zum Lesen, berechnet selbst keine Kennzahl (alle Zahlen kommen aus `sql/marts/`), und alle Texte stehen in `src/i18n/translations.json`.
+
+### Wie der Bildschirm die Stellenanzeige beantwortet
+
+| Auf dem Bildschirm | Was die Stelle verlangt |
+|---|---|
+| Kennzahlen und Funnel | „Du überwachst laufend unsere GTM-Performance … von Funnel-Analysen über Kanal-Performance bis zu Conversion-Raten“ |
+| 1. Welche Kanäle bringen Verkäufer, die wirklich verkaufen? | „Kanal-Performance“, „Traffic-Kanäle optimieren“ |
+| 2. Wer verkauft nach dem Vertrag wirklich? | „Cohort- und Funnel-Analysen über Kundensegmente“, „Win/Loss-Analysen … für unser Sales Enablement“ |
+| 3. Verändert sich gerade etwas? | „Mit Vorher-/Nachher-Vergleichen misst Du, ob Maßnahmen wirklich wirken“ |
+| 4. Können wir den Zahlen trauen? | „eine gemeinsame Datenbasis, auf die sich alle verlassen können“ |
+| Karten mit Empfehlungen | „immer mit konkreten Handlungsempfehlungen statt reinen Reports“ |
+| Frag die Daten und der GTM-Report | „KI- und automatisierungsgestützte Reporting-Infrastruktur“ |
+| Planung von A/B-Tests (Analyse 06) | „Hypothesen … in Experimente und A/B-Tests übersetzen“ |
+
+### Frag die Daten: Einrichtung (einmalig, kostenlos)
+
+```powershell
+winget install Ollama.Ollama
+ollama pull gemma3:4b
+```
+
+Ollama läuft danach im Hintergrund. Das Modell läuft auf dem Laptop, es verlassen also keine Daten den Rechner, und es braucht keinen API-Schlüssel. Ein anderes Modell lässt sich mit der Umgebungsvariable `OLLAMA_MODEL` einstellen. Ohne Ollama zeigt der Bildschirm diese Anleitung statt des Fragefelds.
 
 ---
 
@@ -214,12 +245,12 @@ python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
 python analysis\05_cohorts.py
 python analysis\06_experiments.py
-# 5. Dashboard (Englisch, Deutsch, Persisch)
+# 5. Bildschirm für die Geschäftsführung (Englisch, Deutsch, Persisch)
 streamlit run app\Home.py
 # 6. GTM-Report als Markdown in reports\weekly\ (mit --ai kommt eine optionale KI-Zusammenfassung dazu;
 #    dafür braucht es "pip install anthropic" und einen API-Schlüssel, der Report ist auch ohne sie vollständig)
 python src\weekly_report.py
-# 7. Tests: Übersetzungen, jede Dashboard-Seite in jeder Sprache, der Report
+# 7. Tests: Übersetzungen, der Bildschirm in jeder Sprache, der Report
 python -m unittest discover tests
 ```
 
