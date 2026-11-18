@@ -1,0 +1,79 @@
+"""Shared building blocks for all dashboard pages: language, layout, KPI tiles, colors."""
+
+import sys
+from pathlib import Path
+
+import streamlit as st
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:                 # so that "src.i18n" can be imported
+    sys.path.insert(0, str(ROOT))
+
+from src.i18n import fmt_num, fmt_pct, is_rtl, languages, t  # noqa: E402
+
+# Colors from the validated reference palette (dataviz skill, references/palette.md).
+# Charts only use these roles; status colors are never used for data series.
+COLORS = {
+    "series_1": "#2a78d6",      # categorical slot 1 (blue)
+    "muted": "#898781",         # recessive: data that is not comparable
+    "grid": "#e1e0d9",
+}
+
+
+def lang() -> str:
+    return st.session_state.get("lang", "en")
+
+
+def tr(key: str, **values) -> str:
+    """Translate in the current language."""
+    return t(key, lang(), **values)
+
+
+def language_selector() -> None:
+    options = list(languages())
+    st.sidebar.selectbox(
+        t("sidebar.language", lang()),
+        options,
+        format_func=lambda code: languages()[code]["label"],
+        key="lang",
+    )
+
+
+def apply_direction() -> None:
+    """Persian is written right to left. Charts keep left-to-right axes."""
+    if is_rtl(lang()):
+        st.markdown(
+            """<style>
+            .stMainBlockContainer, [data-testid="stSidebarContent"] { direction: rtl; text-align: right; }
+            [data-testid="stPlotlyChart"], .stDataFrame { direction: ltr; }
+            </style>""",
+            unsafe_allow_html=True,
+        )
+
+
+def kpi_tile(column, kpis, key: str) -> None:
+    """One KPI tile: value, basis (numerator/denominator) and a help text.
+
+    In German and Persian the help text also shows the English term, so the
+    dashboard teaches the vocabulary used in international teams.
+    """
+    row = kpis.loc[key]
+    code = lang()
+    unit = row["unit"]
+    if unit == "rate":
+        value = fmt_pct(row["value"], code)
+        basis = tr("basis.ratio", num=fmt_num(row["numerator"], code), den=fmt_num(row["denominator"], code))
+    elif unit == "brl":                        # average over sellers -> base is the denominator
+        value = tr("unit.brl", value=fmt_num(row["value"], code))
+        basis = tr("basis.n", n=fmt_num(row["denominator"], code))
+    elif unit == "days":                       # median over cases -> base is the numerator
+        value = tr("unit.days", value=fmt_num(row["value"], code))
+        basis = tr("basis.n", n=fmt_num(row["numerator"], code))
+    else:                                      # plain count: the value is its own base
+        value, basis = fmt_num(row["value"], code), ""
+    help_text = tr(f"kpi.{key}.help")
+    if code != "en":
+        help_text += "\n\n" + tr("common.english_term", term=t(f"kpi.{key}.name", "en"))
+    column.metric(tr(f"kpi.{key}.name"), value, help=help_text, border=True)
+    if basis:
+        column.caption(basis)
