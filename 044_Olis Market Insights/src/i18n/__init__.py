@@ -56,6 +56,14 @@ def fmt_pct(rate: float, lang: str, digits: int = 1) -> str:
     return {"de": f"{number} %", "fa": f"{number}٪"}.get(lang, f"{number}%")
 
 
+def fmt_date(date, lang: str) -> str:
+    """2018-09-03 -> en '3 Sep 2018' | de '3. Sep. 2018' | fa '۳ سپتامبر ۲۰۱۸'"""
+    day = f"{date.day}." if lang == "de" else str(date.day)
+    if lang == "fa":
+        day = day.translate(_PERSIAN_DIGITS)
+    return f"{day} {fmt_month(date, lang)}"
+
+
 def fmt_month(date, lang: str) -> str:
     """2018-03-01 -> en 'Mar 2018' | de 'März 2018' | fa 'مارس ۲۰۱۸'"""
     name = t(f"month.{date.month}", lang)

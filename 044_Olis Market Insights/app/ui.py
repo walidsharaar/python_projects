@@ -16,8 +16,14 @@ from src.i18n import fmt_num, fmt_pct, is_rtl, languages, t  # noqa: E402
 COLORS = {
     "series_1": "#2a78d6",      # categorical slot 1 (blue)
     "muted": "#898781",         # recessive: data that is not comparable
+    "ink_secondary": "#52514e", # reference marks (e.g. "expected"), not a data series
     "grid": "#e1e0d9",
 }
+# Categorical slots in fixed order (never cycled, never re-ordered by rank)
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
+# Sequential blue ramp for magnitude (heatmaps): light = low, dark = high
+SEQUENTIAL_BLUE = [[0.0, "#cde2fb"], [0.25, "#86b6ef"], [0.5, "#3987e5"],
+                   [0.75, "#1c5cab"], [1.0, "#0d366b"]]
 
 
 def lang() -> str:

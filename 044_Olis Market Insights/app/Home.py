@@ -11,7 +11,7 @@ navigation changes language too.
 
 import streamlit as st
 
-from data import data_dates, database_exists
+from data import data_dates, database_exists, reload
 from ui import apply_direction, lang, language_selector, tr
 from src.i18n import fmt_month
 
@@ -28,8 +28,14 @@ if not database_exists():
     st.stop()
 
 st.sidebar.caption(tr("sidebar.data_note", data_end=fmt_month(data_dates()["data_end"], lang())))
+st.sidebar.button(tr("sidebar.reload"), on_click=reload)
 
 pages = [
     st.Page("views/overview.py", title=tr("nav.overview"), url_path="overview", default=True),
+    st.Page("views/marketing.py", title=tr("nav.marketing"), url_path="marketing"),
+    st.Page("views/sellers.py", title=tr("nav.sellers"), url_path="sellers"),
+    st.Page("views/experiments.py", title=tr("nav.experiments"), url_path="experiments"),
+    st.Page("views/recommendations.py", title=tr("nav.recommendations"), url_path="recommendations"),
+    st.Page("views/data_quality.py", title=tr("nav.data_quality"), url_path="data-quality"),
 ]
 st.navigation(pages).run()
