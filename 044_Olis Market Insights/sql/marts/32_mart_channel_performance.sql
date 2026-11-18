@@ -1,5 +1,7 @@
 -- mart_channel_performance
 -- Grain: one row per acquisition channel (origin).
+-- Same fair definitions as analysis/01_channel_quality.py and the README:
+--   win rate = won within 60 days, only lead months with complete deal tracking.
 -- Answers two different questions per channel:
 --   1. Do its leads CLOSE?          (lead-to-win, all leads)
 --   2. Do its sellers SELL?         (activation and GMV, full-window sellers only)
@@ -15,8 +17,9 @@ WITH leads AS (
         origin,
         MIN(is_attributed::INT) = 1     AS is_attributed,
         COUNT(*)                        AS leads,
-        SUM(is_won::INT)                AS won
+        SUM(is_won_within_60d::INT)     AS won
     FROM fct_leads
+    WHERE deal_tracking_complete
     GROUP BY origin
 ),
 sellers AS (
@@ -48,8 +51,12 @@ SELECT
        / (1 + r.z^2 / r.leads)                             AS lead_to_win_ci_high,
     r.leads < 100                                          AS is_small_sample,
     COALESCE(s.won_sellers_full_window, 0)                 AS won_sellers_full_window,
+    COALESCE(s.won_sellers_full_window, 0) < 30           AS is_small_seller_sample,
     s.activation_rate,
-    s.gmv_90d_per_won_seller
+    s.gmv_90d_per_won_seller,
+    -- Combined funnel: of 1,000 leads, how many become sellers who sell?
+    -- Robust, because it does not depend on single big sellers like GMV does.
+    1000 * r.p * s.activation_rate                         AS activated_per_1000_leads
 FROM rates AS r
 LEFT JOIN sellers AS s
     ON s.origin = r.origin              -- one channel : zero or one row

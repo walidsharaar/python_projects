@@ -10,6 +10,9 @@ Eine Definition pro KPI. Die Zahlen stehen in der Tabelle `mart_kpi_summary`. Di
 | `lead_to_win_rate` | Lead-to-win rate (ever) | Lead-to-Win-Rate (gesamt) | Won leads | All leads | Sales | Recent leads had less time to close. Do not use for trends |
 | `lead_to_win_rate_60d` | Lead-to-win rate (60 days) | Lead-to-Win-Rate (60 Tage) | Leads won within 0–60 days of first contact | All leads | Sales | Deals are only recorded from 5 Dec 2017. Compare only months with `deal_tracking_complete` |
 | `lead_to_win_rate_60d_tracked` | Lead-to-win rate (60 days, tracked months) | Lead-to-Win-Rate (60 Tage, erfasste Monate) | Leads won within 0–60 days, only months with `deal_tracking_complete` | All leads of those months | Sales | **The headline number for dashboards.** Fair, because every month in it was fully tracked |
+| `mql_per_month_tracked` | MQLs per month (tracked months) | MQLs pro Monat (erfasste Monate) | Leads in tracked months | Number of tracked months | Marketing | Planning input for test duration, not a performance KPI |
+| `unattributed_lead_share` | Leads without a channel | Leads ohne Kanal | Tracked-month leads with origin `unknown` or `not_tracked` | All tracked-month leads | Marketing Ops | A tracking KPI, not a channel. Goal: as close to 0 as possible |
+| `unattributed_win_share` | Wins without a channel | Abschlüsse ohne Kanal | 60-day wins from leads without a channel | All 60-day wins of tracked months | Marketing Ops | Compare with the lead share: if it is much higher, the gap hides the best leads |
 | `sales_cycle_median_days` | Sales cycle (median) | Verkaufszyklus (Median) | Won deals, without the 1 negative cycle | – | Sales | Median, because the mean is pulled up by a few long deals |
 | `seller_activation_rate` | Seller activation rate | Aktivierungsrate der Verkäufer | Won sellers with ≥ 1 non-canceled order | All won sellers | Product / Sales | Mixes sellers with and without a full 90-day window |
 | `seller_activation_rate_full_window` | Seller activation rate (full window) | Aktivierungsrate (volles Zeitfenster) | Activated sellers won ≥ 90 days before data end | Sellers won ≥ 90 days before data end | Product / Sales | Use this one for comparisons |
@@ -23,6 +26,7 @@ Eine Definition pro KPI. Die Zahlen stehen in der Tabelle `mart_kpi_summary`. Di
 |---|---|---|
 | 2026-11-18 | Activation and repeat rate exclude `canceled` orders only | `unavailable` orders have no items, so excluding them changes nothing (45.01 % both ways) |
 | 2026-11-18 | Customers with only canceled orders are not counted as buyers | They never bought anything. Same logic as activation |
+| 2026-11-18 | Dashboards show `lead_to_win_rate_60d_tracked`, and `mart_channel_performance` uses tracked months and 60-day wins | The all-months rate (8.1 %) and the old channel mart (won ever) disagreed with the README findings |
 | 2026-11-18 | 90-day KPIs use sellers with `has_full_90d_window` only | Late sellers activate at 20 % vs. 51 % only because they had less time |
 
 ## Not measurable with this data / Mit diesen Daten nicht messbar

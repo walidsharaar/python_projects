@@ -28,6 +28,8 @@ from stats_utils import bootstrap_mean_ci, chi_square, rate_table, wilson
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "database" / "warehouse.duckdb"
 OUTPUT = ROOT / "reports" / "analysis" / "02_win_vs_activation.md"
+# Result table for the dashboard (the statistics are done here, not in the dashboard)
+RESULT = ROOT / "data" / "results" / "lead_types.parquet"
 MIN_N = 30
 
 
@@ -138,6 +140,21 @@ def sales_reps(df: pd.DataFrame) -> list[str]:
     return out
 
 
+def lead_type_results(df: pd.DataFrame) -> pd.DataFrame:
+    """One row per lead type: activation with Wilson interval, share of sellers and of GMV.
+
+    Only exact calculations, no bootstrap, so the evidence report is not affected.
+    """
+    g = df.groupby("lead_group").agg(sellers=("activated", "size"), activated=("activated", "sum"),
+                                     gmv=("gmv_90d", "sum")).reset_index()
+    g["activation_rate"] = g["activated"] / g["sellers"]
+    g[["ci_low", "ci_high"]] = [wilson(a, n) for a, n in zip(g["activated"], g["sellers"])]
+    g["seller_share"] = g["sellers"] / g["sellers"].sum()
+    g["gmv_share"] = g["gmv"] / g["gmv"].sum()
+    g["is_small"] = g["sellers"] < MIN_N
+    return g
+
+
 def main() -> None:
     df = load()
     low, high = wilson(int(df["activated"].sum()), len(df))
@@ -161,6 +178,9 @@ def main() -> None:
     for title, lines in sections.items():
         md += [f"## {title}", "", "```text", *lines, "```", ""]
     OUTPUT.write_text("\n".join(md), encoding="utf-8")
+    RESULT.parent.mkdir(parents=True, exist_ok=True)
+    lead_type_results(df).to_parquet(RESULT, index=False)
+    print(f"Saved: {RESULT.relative_to(ROOT)}")
     print(f"\nSaved: {OUTPUT.relative_to(ROOT)}")
 
 

@@ -33,6 +33,29 @@ FROM fct_leads
 WHERE deal_tracking_complete
 
 UNION ALL
+-- Lead volume per month in tracked months. Used as the default for test
+-- planning (how long would an A/B test take?). numerator = leads, denominator = months.
+SELECT 'mql_per_month_tracked', 'count',
+       COUNT(*) / COUNT(DISTINCT cohort_month), COUNT(*), COUNT(DISTINCT cohort_month)
+FROM fct_leads
+WHERE deal_tracking_complete
+
+UNION ALL
+-- Attribution gap (finding 1): leads whose channel is unknown or not tracked
+SELECT 'unattributed_lead_share', 'rate',
+       AVG((NOT is_attributed)::INT), SUM((NOT is_attributed)::INT), COUNT(*)
+FROM fct_leads
+WHERE deal_tracking_complete
+
+UNION ALL
+-- ... and their share of all 60-day wins. Much higher than their lead share,
+-- so the gap hides the best-converting part of the funnel.
+SELECT 'unattributed_win_share', 'rate',
+       AVG((NOT is_attributed)::INT), SUM((NOT is_attributed)::INT), COUNT(*)
+FROM fct_leads
+WHERE deal_tracking_complete AND is_won_within_60d
+
+UNION ALL
 -- Median, because a few very long deals pull the mean up (48 vs 14 days).
 SELECT 'sales_cycle_median_days', 'days',
        MEDIAN(sales_cycle_days), COUNT(*), NULL

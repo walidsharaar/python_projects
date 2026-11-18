@@ -29,6 +29,8 @@ from stats_utils import chi_square, wilson
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "database" / "warehouse.duckdb"
 OUTPUT = ROOT / "reports" / "analysis" / "03_landing_pages.md"
+# Result table for the dashboard (the statistics are done here, not in the dashboard)
+RESULT = ROOT / "data" / "results" / "landing_pages.parquet"
 MIN_LEADS = 50
 UNTRACKED = ["unknown", "not_tracked"]
 
@@ -80,7 +82,10 @@ def page_tests(df: pd.DataFrame) -> pd.DataFrame:
             "page": page, "leads": n, "won": won, "rate": won / n,
             "ci_low": low, "ci_high": high, "expected": expected_rate,
             "main_channel": f"{top_channel.index[0]} {top_channel.iloc[0]:.0%}",
+            "main_origin": top_channel.index[0],          # separate columns, so the
+            "main_origin_share": top_channel.iloc[0],     # dashboard can translate them
             "untracked_share": grp["origin"].isin(UNTRACKED).mean(),
+            "untracked_leads": int(grp["origin"].isin(UNTRACKED).sum()),
             "p_naive": p_naive, "p_fair": p_fair,
         })
     t = pd.DataFrame(rows).sort_values("leads", ascending=False)
@@ -159,6 +164,9 @@ def main() -> None:
     for title, lines in sections.items():
         md += [f"## {title}", "", "```text", *lines, "```", ""]
     OUTPUT.write_text("\n".join(md), encoding="utf-8")
+    RESULT.parent.mkdir(parents=True, exist_ok=True)
+    t.to_parquet(RESULT, index=False)
+    print(f"Saved: {RESULT.relative_to(ROOT)}")
     print(f"\nSaved: {OUTPUT.relative_to(ROOT)}")
 
 

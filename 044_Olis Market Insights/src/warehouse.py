@@ -37,6 +37,7 @@ GRAIN = {
     "mart_channel_performance": ["origin"],
     "mart_buyer_retention": ["cohort_month", "month_number"],
     "mart_seller_activation_curve": ["won_month", "window_days"],
+    "mart_data_quality": ["check_key"],
 }
 
 
@@ -96,8 +97,9 @@ def validate(con) -> None:
 
     # 5. Marts must add up to the facts they come from (reconciliation)
     check(scalar(con, "SELECT SUM(leads) FROM mart_gtm_monthly") == 8_000
-          and scalar(con, "SELECT SUM(leads) FROM mart_channel_performance") == 8_000,
-          "monthly and channel marts both add up to 8,000 leads")
+          and scalar(con, "SELECT SUM(leads) FROM mart_channel_performance")
+          == scalar(con, "SELECT denominator FROM mart_kpi_summary WHERE kpi_key = 'lead_to_win_rate_60d_tracked'"),
+          "monthly mart adds up to 8,000 leads, channel mart to all tracked leads")
     check(scalar(con, "SELECT SUM(won_60d) FROM mart_gtm_monthly")
           == scalar(con, "SELECT numerator FROM mart_kpi_summary WHERE kpi_key = 'lead_to_win_rate_60d'"),
           "monthly 60-day wins add up to the KPI summary")
