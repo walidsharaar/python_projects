@@ -209,6 +209,8 @@ python analysis\01_channel_quality.py
 python analysis\02_win_vs_activation.py
 python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
+python analysis\05_cohorts.py
+python analysis\06_experiments.py
 ```
 
 Dashboard und Wochenreport kommen in Schritt 6 und 7 dazu.
@@ -221,7 +223,7 @@ Dashboard und Wochenreport kommen in Schritt 6 und 7 dazu.
 - [x] Schritt 2: Profiling & Bereinigung
 - [x] Schritt 3: Datenmodell (DuckDB) & KPI-Schicht
 - [x] Schritt 4: Funnel-, Kanal-, Segment- und Win/Loss-Analyse, Ergebnisse & Empfehlungen
-- [ ] Schritt 5: Kohorten & Experiment-Modul
+- [x] Schritt 5: Kohorten & Experiment-Modul
 - [ ] Schritt 6: Streamlit-Dashboard (Deutsch und Englisch)
 - [ ] Schritt 7: Automatischer Wochenreport mit KI-Zusammenfassung
 

@@ -209,6 +209,8 @@ python analysis\01_channel_quality.py
 python analysis\02_win_vs_activation.py
 python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
+python analysis\05_cohorts.py
+python analysis\06_experiments.py
 ```
 
 The dashboard and the weekly report are added in Steps 6 and 7.
@@ -221,7 +223,7 @@ The dashboard and the weekly report are added in Steps 6 and 7.
 - [x] Step 2: Profiling & cleaning
 - [x] Step 3: Data model (DuckDB) & KPI layer
 - [x] Step 4: Funnel, channel, segment & win/loss analysis, findings & recommendations
-- [ ] Step 5: Cohorts & experiment module
+- [x] Step 5: Cohorts & experiment module
 - [ ] Step 6: Streamlit dashboard
 - [ ] Step 7: Automated weekly report with AI summary
 
