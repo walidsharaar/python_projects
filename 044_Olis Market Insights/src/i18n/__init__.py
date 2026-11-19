@@ -17,9 +17,15 @@ DEFAULT_LANG = "en"
 _PERSIAN_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 
 
-@lru_cache(maxsize=1)
-def _load() -> dict:
+@lru_cache(maxsize=4)
+def _load_version(mtime: float) -> dict:
     return json.loads(FILE.read_text(encoding="utf-8"))
+
+
+def _load() -> dict:
+    """Cached, but re-read when the file changes on disk. A running dashboard
+    keeps imported modules in memory, so a plain cache would show old texts."""
+    return _load_version(FILE.stat().st_mtime)
 
 
 def languages() -> dict:
