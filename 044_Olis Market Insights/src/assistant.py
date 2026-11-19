@@ -28,7 +28,8 @@ import urllib.request
 
 HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b")
-TIMEOUT_SECONDS = 120
+# On a laptop without a graphics card, the first answer (model loading) can take minutes
+TIMEOUT_SECONDS = float(os.environ.get("OLLAMA_TIMEOUT", "300"))
 MAX_HISTORY = 6          # earlier question/answer pairs sent along, to keep the prompt small
 
 LANGUAGE_NAMES = {"en": "English", "de": "German", "fa": "Persian (Farsi/Dari)"}
@@ -52,6 +53,22 @@ def status() -> dict:
     return {"running": True, "model_ready": ready, "model": MODEL, "models": models}
 
 
+def compact(facts: dict) -> dict:
+    """Only the essentials, so a small model on a laptop answers in reasonable time.
+
+    Every value still comes from the project's facts; nothing is added.
+    """
+    keep_channel = ("origin", "leads", "lead_to_win_rate", "activation_rate", "activated_per_1000_leads")
+    return {
+        "note": facts.get("note"),
+        "kpis": {key: v["value"] for key, v in facts.get("kpis", {}).items()},
+        "funnel_per_1000_leads": facts.get("funnel_per_1000_leads"),
+        "channels": [{c: ch.get(c) for c in keep_channel} for ch in facts.get("channels") or []],
+        "latest_month_check": facts.get("latest_month_check"),
+        "findings": [f.get("title") for f in facts.get("findings") or []],
+    }
+
+
 def system_prompt(facts: dict, lang: str) -> str:
     return (
         "You are a data analyst who explains a Go-to-Market dashboard to an executive. "
@@ -65,7 +82,7 @@ def system_prompt(facts: dict, lang: str) -> str:
         "4. When you recommend something, name who should act (Marketing, Sales, Product or Data) "
         "and how success would be measured, using the findings in the JSON.\n"
         "5. GMV is not revenue. There is no marketing spend data, so never talk about CAC or ROI as known.\n"
-        "FACTS (JSON):\n" + json.dumps(facts, ensure_ascii=False, default=str)
+        "FACTS (JSON):\n" + json.dumps(compact(facts), ensure_ascii=False, default=str, separators=(",", ":"))
     )
 
 

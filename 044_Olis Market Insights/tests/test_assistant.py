@@ -43,7 +43,7 @@ class AssistantTests(unittest.TestCase):
             prompt = assistant.system_prompt(FACTS, lang)
             self.assertIn(name, prompt)
             self.assertIn("Do not invent numbers", prompt)
-            self.assertIn(json.dumps(FACTS, ensure_ascii=False), prompt)
+            self.assertIn("lead_to_win_rate_60d_tracked", prompt)   # the facts are in the prompt
 
 
 if __name__ == "__main__":
