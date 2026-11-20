@@ -169,7 +169,49 @@ def make_orders(customers: pd.DataFrame, items: pd.DataFrame, n: int):
 
     return pd.DataFrame(headers), pd.DataFrame(lines)
 
+def make_invoices(ordr: pd.DataFrame, rdr1: pd.DataFrame, items: pd.DataFrame):
+    """OINV (headers) and INV1 (lines): one invoice per delivered, not canceled order."""
+    cost_per_piece = items.set_index("itemcode")["avgprice"].to_dict()
+    today = date.today()
+    delivered = ordr[(ordr["canceled"] == "N") & (ordr["docduedate"] <= today)]
+    order_lines = rdr1.groupby("docentry")
 
+    headers, lines = [], []
+    for docentry, order in enumerate(delivered.itertuples(index=False), start=1):
+        doctotal = 0.0
+        for linenum, ol in enumerate(order_lines.get_group(order.docentry).itertuples(index=False)):
+            qty = ol.quantity
+            if qty > 1 and random.random() < 0.05:
+                qty = random.randint(1, qty - 1)     # partial delivery
+            linetotal = round(qty * ol.price, 2)
+            doctotal += linetotal
+            lines.append({
+                "docentry":   docentry,
+                "linenum":    linenum,
+                "basetype":   17,                    # 17 = based on a sales order
+                "baseentry":  order.docentry,        # which order
+                "baseline":   ol.linenum,            # which order line
+                "itemcode":   ol.itemcode,
+                "quantity":   qty,                   # in sales units
+                "unitmsr":    ol.unitmsr,
+                "numpermsr":  ol.numpermsr,
+                "price":      ol.price,              # per sales unit
+                "linetotal":  linetotal,             # net revenue of the line
+                "stockprice": cost_per_piece[ol.itemcode],   # cost per piece
+            })
+
+        headers.append({
+            "docentry":   docentry,
+            "docnum":     200000 + docentry,
+            "cardcode":   order.cardcode,
+            "docdate":    order.docduedate,          # invoiced on delivery
+            "docduedate": order.docduedate + timedelta(days=30),   # payment due
+            "canceled":   "N",
+            "doctotal":   round(doctotal, 2),
+            "updatedate": order.docduedate,
+        })
+
+    return pd.DataFrame(headers), pd.DataFrame(lines)
 
 def main():
     engine = get_engine(SOURCE_DB)
@@ -178,6 +220,7 @@ def main():
     customers = pd.concat([customers, make_special_customers(customers)], ignore_index=True)
     items = make_items()
     ordr, rdr1 = make_orders(customers, items, N_ORDERS)
+    oinv, inv1 = make_invoices(ordr, rdr1, items)
 
     tables = {
         "ocrd": customers,
@@ -185,6 +228,8 @@ def main():
         "oitm": items,
         "ordr": ordr,
         "rdr1": rdr1,
+        "oinv": oinv,
+        "inv1": inv1,
     }
     for name, df in tables.items():
         df.to_sql(name, engine, if_exists="replace", index=False)
