@@ -18,11 +18,10 @@ N_NEW_CUSTOMERS = 80         # shops only Company B knows
 N_INVOICES = 1200
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "landing" / "company_b"
 
-fake = Faker("de_DE")
-Faker.seed(SEED)
-random.seed(SEED)
+fake = Faker("de_DE")        # the seed is set in main(), at run time
 
 
+# --- Customers ----------------------------------------------------------
 def vary_name(name: str) -> str:
     """Same shop, written differently: typical when two systems keep master data."""
     r = random.random()
@@ -57,6 +56,7 @@ def make_customers() -> pd.DataFrame:
     return customers
 
 
+# --- Items --------------------------------------------------------------
 LINES = ["Standard", "Extra stark", "Recycling"]
 SIZES = ["10 l", "35 l", "60 l", "120 l"]
 UNITS = [("Rolle", 1), ("Karton", 20), ("Karton", 40), ("Palette", 960)]
@@ -81,7 +81,7 @@ def make_items() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-
+# --- Sales --------------------------------------------------------------
 def make_sales(customers: pd.DataFrame, items: pd.DataFrame) -> pd.DataFrame:
     """Verkäufe: flat file, one row per invoice line. RE = invoice, GS = credit note."""
     rows = []
@@ -115,6 +115,7 @@ def make_sales(customers: pd.DataFrame, items: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([sales, duplicates], ignore_index=True)
 
 
+# --- Export -------------------------------------------------------------
 def write_csv(df: pd.DataFrame, filename: str) -> None:
     """Write like a German ERP export: ; separator, decimal comma, dd.mm.yyyy, Windows-1252."""
     df = df.copy()
@@ -125,8 +126,12 @@ def write_csv(df: pd.DataFrame, filename: str) -> None:
     print(f"{filename}: {len(df)} rows written to {OUTPUT_DIR}")
 
 
+# --- Main ---------------------------------------------------------------
 def main():
+    Faker.seed(SEED)             # seed at run time, not at import time
+    random.seed(SEED)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
     customers = make_customers()
     items = make_items()
     write_csv(customers, "kunden.csv")

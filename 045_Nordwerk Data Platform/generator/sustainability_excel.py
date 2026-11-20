@@ -1,5 +1,5 @@
 """
-Excel file maintained by hand by the master data / sustainability team.
+Source: Excel file maintained by hand by the master data / sustainability team.
 Recycled-material share (Rezyklatanteil) per item, for the 2030 sustainability goal.
 Typical Excel problems on purpose: title rows above the table, percentages
 sometimes typed as text ("45 %"), an unknown item number, several rows per item (history).
@@ -18,9 +18,8 @@ B_ITEMS_FILE = BASE_DIR / "data" / "landing" / "company_b" / "artikel.csv"
 OUTPUT_DIR = BASE_DIR / "data" / "landing" / "sustainability"
 OUTPUT_FILE = OUTPUT_DIR / "rezyklatanteile.xlsx"
 
-random.seed(SEED)
 
-
+# --- Items of both companies ---------------------------------------------
 def load_items() -> pd.DataFrame:
     """Firma, Artikelnr, Bezeichnung for Company A (database) and Company B (CSV)."""
     a = pd.read_sql(
@@ -45,6 +44,7 @@ def recycled_share(name: str) -> int:
     return random.randint(0, 35)
 
 
+# --- The sheet, as the team maintains it --------------------------------
 def make_sheet(items: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for it in items.itertuples(index=False):
@@ -80,7 +80,7 @@ def make_sheet(items: pd.DataFrame) -> pd.DataFrame:
     return df.sort_values(["Firma", "Artikelnr", "Gültig ab"]).reset_index(drop=True)
 
 
-
+# --- Write Excel with title rows ----------------------------------------
 def write_excel(df: pd.DataFrame) -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(OUTPUT_FILE, engine="openpyxl") as writer:
@@ -91,7 +91,9 @@ def write_excel(df: pd.DataFrame) -> None:
     print(f"rezyklatanteile.xlsx: {len(df)} rows written to {OUTPUT_DIR}")
 
 
+# --- Main ---------------------------------------------------------------
 def main():
+    random.seed(SEED)            # seed at run time, not at import time
     write_excel(make_sheet(load_items()))
 
 

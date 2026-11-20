@@ -1,7 +1,8 @@
 """
 Source system simulator: Company A (Nordwerk Haushalt GmbH) on SAP Business One.
 Writes fake data with real SAP B1 table and column names into the database src_sap_b1.
-Tables: OCRD (customers), OITB (item groups), OITM (items), ORDR/RDR1 (orders)
+Tables: OCRD (customers), OITB (item groups), OITM (items),
+        ORDR/RDR1 (orders), OINV/INV1 (invoices)
 """
 import random
 from datetime import date, timedelta
@@ -16,12 +17,10 @@ N_CUSTOMERS = 200
 N_ORDERS = 2000
 SOURCE_DB = "src_sap_b1"
 
-fake = Faker("de_DE")
-Faker.seed(SEED)
-random.seed(SEED)
+fake = Faker("de_DE")           # the seed is set in main(), at run time
 
 
-
+# --- Customers ----------------------------------------------------------
 def make_customers(n: int) -> pd.DataFrame:
     """OCRD: n customers."""
     rows = []
@@ -59,6 +58,7 @@ def make_special_customers(customers: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([group_companies, duplicate], ignore_index=True)
 
 
+# --- Items --------------------------------------------------------------
 ITEM_GROUPS = {
     101: "Reinigungsmittel",
     102: "Spülen & Küche",
@@ -122,7 +122,7 @@ def make_items() -> pd.DataFrame:
     return items
 
 
-
+# --- Orders -------------------------------------------------------------
 def make_orders(customers: pd.DataFrame, items: pd.DataFrame, n: int):
     """ORDR (headers) and RDR1 (lines)."""
     headers, lines = [], []
@@ -169,6 +169,8 @@ def make_orders(customers: pd.DataFrame, items: pd.DataFrame, n: int):
 
     return pd.DataFrame(headers), pd.DataFrame(lines)
 
+
+# --- Invoices -----------------------------------------------------------
 def make_invoices(ordr: pd.DataFrame, rdr1: pd.DataFrame, items: pd.DataFrame):
     """OINV (headers) and INV1 (lines): one invoice per delivered, not canceled order."""
     cost_per_piece = items.set_index("itemcode")["avgprice"].to_dict()
@@ -213,7 +215,11 @@ def make_invoices(ordr: pd.DataFrame, rdr1: pd.DataFrame, items: pd.DataFrame):
 
     return pd.DataFrame(headers), pd.DataFrame(lines)
 
+
+# --- Main ---------------------------------------------------------------
 def main():
+    Faker.seed(SEED)             # seed at run time, not at import time
+    random.seed(SEED)
     engine = get_engine(SOURCE_DB)
 
     customers = make_customers(N_CUSTOMERS)

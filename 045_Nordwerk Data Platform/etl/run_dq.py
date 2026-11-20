@@ -2,6 +2,7 @@
 Data quality checks: run every active rule from meta.dq_rule, write results to meta.dq_result.
 A rule's check_sql returns ONE number: how many rows break the rule (0 = OK).
 If any ERROR rule fails, the run is marked 'failed'.
+Returns 'success' or 'failed', so the pipeline can react.
 """
 from sqlalchemy import text
 
@@ -45,6 +46,7 @@ def main():
             {"status": run_status, "msg": message, "run_id": run_id},
         )
     print(f"DQ run {run_id}: {run_status}" + (f" ({message})" if message else ""))
+    return run_status
 
 
 if __name__ == "__main__":
