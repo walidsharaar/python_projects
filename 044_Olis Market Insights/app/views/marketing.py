@@ -39,7 +39,7 @@ def channel_name(origin: str) -> str:
 st.title(tr("marketing.title"))
 st.write(tr("marketing.intro"))
 
-# ------------------------------------------------------ tracking gap tiles
+
 k = kpis()
 for section, keys in TILES:
     st.subheader(tr(section))
@@ -48,7 +48,6 @@ for section, keys in TILES:
         kpi_tile(column, k, key)
     columns[-1].warning(tr("marketing.tracking.warning"))
 
-# --------------------------------------------- win rate with confidence
 st.subheader(tr("marketing.channels.title"))
 ch = channels().sort_values("lead_to_win_rate").copy()      # ascending: best ends up on top
 ch["label"] = ch["origin"].map(channel_name)
@@ -78,7 +77,7 @@ fig.update_yaxes(categoryorder="array", categoryarray=list(ch["label"]))
 st.plotly_chart(base_layout(fig, 420, ".0%"), width="stretch")
 st.caption(tr("marketing.channels.caption"))
 
-# ------------------------------------- activated sellers per 1,000 leads
+
 st.subheader(tr("marketing.activated.title"))
 act = ch.dropna(subset=["activated_per_1000_leads"]).sort_values("activated_per_1000_leads").copy()
 act["hover"] = [tr("marketing.activated.hover", channel=lbl, value=fmt_num(v, code),
@@ -113,7 +112,7 @@ with st.expander(tr("common.show_table")):
 
 st.info(f"**{tr('common.so_what')}** {tr('marketing.so_what.text')}")
 
-# --------------------------------------------------------- landing pages
+
 st.divider()
 st.subheader(tr("marketing.pages.title"))
 st.write(tr("marketing.pages.intro"))

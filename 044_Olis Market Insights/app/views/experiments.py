@@ -22,7 +22,7 @@ k = kpis()
 st.title(tr("exp.title"))
 st.write(tr("exp.intro"))
 
-# ------------------------------------------------------- 1. plan a test
+
 st.subheader(tr("exp.plan.title"))
 baseline_default = round(k.loc["lead_to_win_rate_60d_tracked", "value"] * 100, 1)
 volume_default = int(round(k.loc["mql_per_month_tracked", "value"]))
@@ -49,7 +49,7 @@ else:
     m3.metric(tr("exp.plan.months"), tr("exp.plan.months_value", value=fmt_num(months, code, 1)), border=True)
     (st.warning if months > 12 else st.success)(tr("exp.plan.slow") if months > 12 else tr("exp.plan.ok"))
 
-# ---------------------------------------------- 2. read a finished test
+
 st.subheader(tr("exp.read.title"))
 st.write(tr("exp.read.intro"))
 r1, r2, r3, r4 = st.columns(4)

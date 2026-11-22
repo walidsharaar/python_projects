@@ -5,3 +5,5 @@ __pycache__/
 .env
 database/
 data/results/
+logs/
+data/simulated/

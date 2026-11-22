@@ -21,7 +21,6 @@ code = lang()
 st.title(tr("overview.title"))
 st.write(tr("overview.intro"))
 
-# ------------------------------------------------------------ KPI tiles
 k = kpis()
 for section, keys in TILES:
     st.subheader(tr(section))
@@ -29,7 +28,7 @@ for section, keys in TILES:
     for column, key in zip(columns, keys):
         kpi_tile(column, k, key)
 
-# --------------------------------------------------------- monthly trend
+
 st.subheader(tr("overview.trend.title"))
 m = gtm_monthly().copy()
 m["month_label"] = [fmt_month(d, code) for d in m["cohort_month"]]
@@ -80,5 +79,5 @@ with st.expander(tr("common.show_table")):
                                        for v in m["deal_tracking_complete"]],
     }), hide_index=True, width="stretch")
 
-# ------------------------------------------------------------- so what?
+
 st.info(f"**{tr('common.so_what')}** {tr('overview.so_what.text')}")

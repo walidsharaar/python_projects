@@ -1,6 +1,6 @@
 # GTM report: 3 Sep 2018
 
-_Created automatically on 19 Nov 2026 from the KPI layer (database/warehouse.duckdb). Data: real public data from Olist, effective data end 3 Sep 2018._
+_Created automatically on 22 Nov 2026 from the KPI layer (database/warehouse.duckdb). Data: real public data from Olist, effective data end 3 Sep 2018._
 
 ## 1. Main KPIs
 

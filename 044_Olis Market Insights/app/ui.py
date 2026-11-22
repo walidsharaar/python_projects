@@ -72,6 +72,9 @@ def kpi_tile(column, kpis, key: str) -> None:
     elif unit == "brl":                        # average over sellers -> base is the denominator
         value = tr("unit.brl", value=fmt_num(row["value"], code))
         basis = tr("basis.n", n=fmt_num(row["denominator"], code))
+    elif unit == "eur":                        # cost per booking -> base is the number of bookings
+        value = tr("unit.eur", value=fmt_num(row["value"], code))
+        basis = tr("basis.n", n=fmt_num(row["denominator"], code))
     elif unit == "days":                       # median over cases -> base is the numerator
         value = tr("unit.days", value=fmt_num(row["value"], code))
         basis = tr("basis.n", n=fmt_num(row["numerator"], code))

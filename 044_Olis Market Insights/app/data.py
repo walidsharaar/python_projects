@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # Default warehouse; set GTM_WAREHOUSE to use another copy (e.g. a test build)
 DB_PATH = Path(os.environ.get("GTM_WAREHOUSE", ROOT / "database" / "warehouse.duckdb"))
 RESULTS = ROOT / "data" / "results"
+# SIMULATED EventPro data (src/simulate.py). A separate file, so it can never mix with Olist.
+SIM_DB_PATH = Path(os.environ.get("GTM_SIMULATION", ROOT / "database" / "simulation.duckdb"))
 
 
 def database_exists() -> bool:
@@ -95,3 +97,39 @@ def data_dates() -> dict:
                (SELECT MIN(won_date)     FROM fct_leads)       AS tracking_start
     """).iloc[0]
     return {"data_end": row["data_end"], "tracking_start": row["tracking_start"]}
+
+
+
+def simulation_exists() -> bool:
+    return SIM_DB_PATH.exists()
+
+
+@st.cache_data
+def sim_query(sql: str) -> pd.DataFrame:
+    """Same rules as query(), but on database/simulation.duckdb (SYNTHETIC data)."""
+    with duckdb.connect(str(SIM_DB_PATH), read_only=True) as con:
+        return con.execute(sql).df()
+
+
+def sim_kpis() -> pd.DataFrame:
+    return sim_query("SELECT * FROM sim_kpi_summary").set_index("kpi_key")
+
+
+def sim_channels() -> pd.DataFrame:
+    return sim_query("SELECT * FROM sim_channel_summary")
+
+
+def sim_ai_weekly() -> pd.DataFrame:
+    return sim_query("SELECT * FROM sim_ai_referral_weekly ORDER BY week")
+
+
+def sim_winloss() -> pd.DataFrame:
+    return sim_query("SELECT * FROM sim_winloss_industry")
+
+
+def sim_response_time() -> pd.DataFrame:
+    return sim_query("SELECT * FROM sim_response_time ORDER BY sort_order")
+
+
+def sim_loss_reasons() -> pd.DataFrame:
+    return sim_query("SELECT * FROM sim_loss_reasons")

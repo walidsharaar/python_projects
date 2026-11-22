@@ -1,6 +1,6 @@
 # Marketplace GTM Analytics: Vom Lead zum aktiven Verkäufer
 
-> Eine Go-to-Market-Analyse für einen **zweiseitigen B2B-Marktplatz**: vom ersten Kontakt im Marketing über den Abschluss im Vertrieb bis zum ersten Umsatz des Verkäufers.
+> Eine Go-to-Market-Analyse für einen **zweiseitigen Marktplatz mit B2B-Verkäuferseite**: vom ersten Kontakt im Marketing über den Abschluss im Vertrieb bis zum ersten Umsatz des Verkäufers.
 > Umgesetzt mit Python, DuckDB/SQL und Streamlit, auf Basis **echter** Marktplatzdaten (Olist, Brasilien, 2016–2018).
 
 *English version: [README.md](README.md)*
@@ -17,7 +17,7 @@ Olist ist ein Marktplatz. Er verbindet kleine und mittlere Händler (Verkäufer)
 2. **Verkäufer aktivieren**: Ein Abschluss ist erst dann etwas wert, wenn der Verkäufer auch wirklich verkauft.
 3. **Käufer bedienen** (Nachfrageseite): Kunden bestellen und kommen im besten Fall wieder.
 
-Das ist das typische Problem jedes B2B-Marktplatzes: **Marketing, Sales und Product sind jeweils nur für einen Teil des Funnels verantwortlich. Das Wachstum hängt aber von der ganzen Kette ab.** Dieses Projekt baut deshalb eine gemeinsame Datenbasis, auf die sich alle drei Teams verlassen können.
+Das ist das typische Problem jedes Marktplatzes, der Geschäftskunden als Verkäufer gewinnen muss: **Marketing, Sales und Product sind jeweils nur für einen Teil des Funnels verantwortlich. Das Wachstum hängt aber von der ganzen Kette ab.** Dieses Projekt baut deshalb eine gemeinsame Datenbasis, auf die sich alle drei Teams verlassen können.
 
 ```text
 Marketing                  Sales                      Product / Marktplatz
@@ -36,7 +36,7 @@ Jede Frage gehört zu einer typischen Aufgabe im Bereich GTM & Insights. In der 
 |---|---|---|---|---|
 | Q1 | **GTM-Performance überwachen** | Wie viele Leads werden zu Abschlüssen, wie lange dauert ein Deal, und wie entwickelt sich das von Monat zu Monat? | KPI-Baum, monatlicher Funnel, festes 60-Tage-Fenster | Neue Kohorten hatten noch wenig Zeit zum Abschließen. Deshalb vergleiche ich feste Zeitfenster und nicht „irgendwann gewonnen“ |
 | Q2 | **Kanal-Performance** | Welche Kanäle bringen Leads, die *abschließen*? Und welche bringen Verkäufer, die auch wirklich *verkaufen*? | Conversion, Aktivierung und 90-Tage-GMV pro Kanal, Wilson-Konfidenzintervalle | Kleine Kanäle (n < 100) zeige ich mit Intervall und nicht als Rangliste |
-| Q3 | **Tracking & Datenqualität** | Bei wie vielen Leads fehlt die Herkunft, und verfälscht das unsere Kanal-Entscheidungen? | Anteil `unknown`/fehlend, Vergleich der Conversion | Bei 14,5 % der Leads ist die Herkunft unklar, und genau diese Leads schließen *überdurchschnittlich* oft ab |
+| Q3 | **Tracking & Datenqualität** | Bei wie vielen Leads fehlt die Herkunft, und verfälscht das unsere Kanal-Entscheidungen? | Anteil `unknown`/fehlend, Vergleich der Conversion | Bei 14,5 % aller Leads (14,4 % der Leads aus 2018) ist die Herkunft unklar, und genau diese Leads schließen *überdurchschnittlich* oft ab |
 | Q4 | **Segmente vergleichen** | Welche Segmente (z. B. `health_beauty` vs. `car_accessories`) schließen schneller ab, werden öfter aktiv und bringen mehr GMV? | Segment-Benchmark für gewonnene Deals | Das Segment kennen wir nur bei **gewonnenen** Deals. Verglichen wird also die *Qualität der Abschlüsse*, nicht die Conversion |
 | Q5 | **Kohorten + Vorher/Nachher** | Ist die Conversion von 2017 auf 2018 wirklich gestiegen, oder liegt das nur an den Daten? | Monatliche Lead-Kohorten, feste Fenster, Prüfung der Datenabdeckung | Siehe H1: Ein einfacher Vorher-/Nachher-Vergleich führt hier in die Irre |
 | Q6 | **Win/Loss für Sales Enablement** | Was unterscheidet Leads, die abschließen, von denen, die es nicht tun? Und gewonnene Verkäufer, die aktiv werden, von denen, die nie verkaufen? | Logistische Regression, Vergleich gewonnen vs. aktiviert (Lead-Typ, Geschäftstyp, Vertriebsmitarbeiter) | Es gibt keine Verlustgründe. „Verloren“ heißt hier: MQL ohne Abschluss |
@@ -59,42 +59,54 @@ Quelle: Kaggle, *Marketing Funnel by Olist* und *Brazilian E-Commerce Public Dat
 | Bestellungen | 99.441 | Sep 2016 – Okt 2018 (mit Artikeln nur bis 3. Sep 2018) | Q9, Q10 |
 | Bestellpositionen, Verkäufer, Kunden, Produkte, Zahlungen, Bewertungen | — | — | Q9, Q10 |
 
-Die wichtigsten Zahlen aus dem ersten Daten-Check:
+Die wichtigsten Zahlen aus dem ersten Daten-Check (alle Leads und alle gewonnenen Verkäufer; die fairen Vergleiche in Abschnitt 9 nutzen Lead-Kohorten aus 2018 und Verkäufer mit vollem 90-Tage-Fenster):
 
-- **Lead-to-Win-Conversion:** 842 / 8.000 = **10,5 %**
+- **Lead-to-Win-Conversion:** 842 / 8.000 = **10,5 %** (irgendwann gewonnen); **10,6 %** innerhalb von 60 Tagen bei den Kohorten aus 2018 (636 von 5.998)
 - **Dauer bis zum Abschluss:** im Median 14 Tage (Mittelwert 48 Tage, es gibt also einige sehr lange Deals)
 - **Aktivierung:** Nur **45 %** der gewonnenen Verkäufer verkaufen jemals etwas (51 % bei Verkäufern mit vollem 90-Tage-Fenster)
 - **Zeit vom Abschluss bis zum ersten Verkauf:** im Median 44 Tage
 - **GMV-Konzentration:** Die besten 10 % der neuen Verkäufer machen **83 %** des gesamten GMV aller neuen Verkäufer in den ersten 90 Tagen
-- **Wiederkaufrate:** Nur **3,1 %** der Kunden bestellen mehr als einmal
+- **Wiederkaufrate:** Nur **3,1 %** der Kunden (2.924 von 95.560) haben zwei oder mehr nicht stornierte Bestellungen
 
 ---
 
 ## 4. Erste Beobachtungen (Hypothesen)
 
-Diese Punkte sind mir beim ersten Daten-Check aufgefallen. Es sind **Hypothesen**, keine Ergebnisse. Die Prüfung steht in Abschnitt 9.
+Diese Punkte sind mir beim ersten Daten-Check aufgefallen. Dafür habe ich alle Leads und alle gewonnenen Verkäufer genutzt. Es sind **Hypothesen**, keine Ergebnisse. Unter jeder Hypothese steht ein **Ergebnis** mit der geprüften Zahl aus der fairen Vergleichsgruppe (Lead-Kohorten aus 2018, Verkäufer mit vollem 90-Tage-Fenster). Deshalb weichen manche Zahlen vom ersten Check ab.
 
 **H1: Der „Conversion-Sprung“ von 2017 auf 2018 ist wahrscheinlich ein Tracking-Problem und kein Erfolg.**
 Leads aus 2017 haben eine 60-Tage-Conversion von **0,5 %**, Leads aus 2018 dagegen **10,6 %**. Der erste Abschluss in den Daten ist aber vom **5. Dezember 2017**. Vermutlich wurden Abschlüsse erst ab diesem Zeitpunkt erfasst. Wer hier einfach vorher und nachher vergleicht, feiert eine Verbesserung um das 20-Fache, die es nie gab.
 → *Was daraus folgt: Vor jedem Vorher-/Nachher-Vergleich muss man prüfen, ob die Daten für beide Zeiträume vollständig sind. Sinnvoll vergleichen lassen sich nur die Kohorten aus 2018.*
 
+**Ergebnis: bestätigt.** Wenn beide Zeiträume vollständig erfasst sind, liegt die Conversion bei 10,9 % (Jan–Feb 2018) und 11,8 % (Mär–Apr 2018): etwa +1 Punkt, nicht das 21-Fache. (Ergebnis 2)
+
 **H2: Leads ohne Herkunft sind besonders gute Leads. Fehlendes Tracking verfälscht also die Kanal-Entscheidungen.**
 `unknown` und fehlende Herkunft zusammen: 1.159 Leads (14,5 %). Sie konvertieren mit **16–23 %**, organische Suche zum Vergleich mit 11,8 %.
 → *Was daraus folgt: Zuerst die Attribution reparieren (UTM-Parameter, Tracking der Landingpages). Sonst verschiebt man Budget auf Basis unvollständiger Daten.*
 
+**Ergebnis: bestätigt.** Kohorten aus 2018: 861 von 5.998 Leads (14,4 %) haben keinen Kanal, bringen aber 160 von 636 Abschlüssen in 60 Tagen (25,2 %). Ihre Win-Rate liegt bei 18,6 %, bei Leads mit Kanal bei 9,3 %. 62 % davon kommen über eine einzige Landingpage. (Ergebnis 1)
+
 **H3: Die Kanäle unterscheiden sich stark in der Qualität, nicht nur in der Menge.**
 Paid Search (12,3 %) und organische Suche (11,8 %) konvertieren ähnlich gut. E-Mail (3,0 %) und Social (5,6 %) liegen weit darunter, obwohl Social 1.350 Leads bringt.
+
+**Ergebnis: bestätigt, mit Korrektur.** Kohorten aus 2018, 60-Tage-Fenster: Paid Search 11,6 % gegen organische Suche 11,5 % (p = 0,95, kein echter Unterschied), Social 4,7 % bei 1.051 Leads, E-Mail 3,2 %. Die Zahlen oben stammen aus allen Monaten und „irgendwann gewonnen“. (Ergebnisse 3 und 7)
 
 **H4: Ein gewonnener Deal ist noch kein Erfolg. Der Lead-Typ zeigt, wer später wirklich verkauft.**
 Leads vom Typ `online_big` werden zu **63 %** aktiv (im Schnitt rund 1.490 BRL GMV in 90 Tagen). Bei `offline` sind es nur **29 %** (rund 80 BRL), bei `industry` 33 %.
 → *Was daraus folgt für den Vertrieb: Leads nicht nur danach bewerten, ob sie abschließen, sondern auch danach, ob sie später aktiv werden.*
 
+**Ergebnis: bestätigt.** Verkäufer mit vollem 90-Tage-Fenster: `online_big` 72 %, `offline` 34 %, `industry` 37 %. Das Muster gilt auch in der logistischen Regression (Odds Ratio `offline` 0,36). `online_big` sind 15 % der Verkäufer, bringen aber 47 % des 90-Tage-GMV. (Ergebnis 4)
+
 **H5: Wenige Landingpages tragen den ganzen Funnel.**
 Die zwei größten Landingpages (je etwa 900 Leads) konvertieren mit **19–20 %**. Andere Seiten mit viel Traffic kommen nur auf 3–7 %.
+
+**Ergebnis: teilweise bestätigt.** Bei den Kohorten aus 2018 haben die zwei größten Seiten 751 und 726 Leads und konvertieren mit 19,2 % und 19,6 %. Aber 71 % der Leads auf der Seite b76ef374 haben keinen Kanal. Nach Bereinigung um den Kanal-Mix und Benjamini-Hochberg-Korrektur unterscheiden sich nur 3 von 18 Seiten wirklich von ihrem Kanal. (Ergebnis 6)
 
 **H6: Klassische A/B-Tests auf Lead-to-Win dauern bei diesem Volumen zu lange.**
 Um eine Steigerung von 12 % auf 14 % nachzuweisen (α = 0,05, Power = 80 %), braucht man etwa **4.400 Leads pro Variante**. Bei rund 1.200 MQLs im Monat dauert das **mehr als 7 Monate**.
 → *Was daraus folgt: Auf schnellere Kennzahlen weiter oben im Funnel testen (MQL-Rate, SDR-Kontaktrate), ein sequenzielles Design nutzen oder vorher/nachher mit Kontrollgruppe vergleichen (Difference-in-Differences).*
+
+**Ergebnis: bestätigt.** Die Power-Analyse ergibt 4.433 Leads pro Gruppe. Mit den 2 Monaten, bis das Ergebnis feststeht, sind das etwa 9,4 Monate. (reports/analysis/06_experiments.md)
 
 ---
 
@@ -160,7 +172,7 @@ DuckDB (database/warehouse.duckdb)
 
 ## 8. Seiten im Dashboard
 
-Start mit `streamlit run app\Home.py`. In der Seitenleiste lässt sich die Sprache wählen: **English, Deutsch, فارسی / دری** (bei Persisch läuft der Text von rechts nach links). Auf Deutsch und Persisch zeigt die Hilfe zu jeder Kennzahl auch den englischen Begriff.
+Start mit `streamlit run app\Home.py`. In der Seitenleiste lässt sich die Sprache wählen: **English** und **Deutsch**. Persisch (فارسی / دری, von rechts nach links) ist als Extra dabei. Auf Deutsch und Persisch zeigt die Hilfe zu jeder Kennzahl auch den englischen Begriff.
 
 1. **GTM-Überblick:** 7 KPI-Kacheln mit Zähler und Nenner, Leads und Win-Rate in 60 Tagen nach Monat (Monate ohne Erfassung grau)
 2. **Marketing & Kanäle:** Tracking-Lücke, Win-Rate pro Kanal mit 95-%-Konfidenzintervall, aktive Verkäufer pro 1.000 Leads, Landingpages im Vergleich mit ihrem Kanal-Mix (einfacher gegen korrigierten Test)
@@ -168,7 +180,8 @@ Start mit `streamlit run app\Home.py`. In der Seitenleiste lässt sich die Sprac
 4. **Experimente:** Rechner für Stichprobe und Dauer (Startwerte aus dem echten Lead-Volumen), Auswertung eines fertigen A/B-Tests mit Entscheidungsregel
 5. **Empfehlungen:** die neun Ergebnisse, nach Team filterbar
 6. **Datenqualität:** jede bekannte Lücke mit betroffenen Datensätzen und den Kennzahlen, die sie beeinflusst
-7. **Frag die Daten:** Fragen zu den Zahlen, beantwortet von einem kostenlosen, lokalen KI-Modell (Ollama, Modell `gemma3:4b`). Es bekommt nur die berechneten Fakten, und jede Antwort ist als KI-Antwort markiert. Einmalig einrichten: `winget install Ollama.Ollama`, dann `ollama pull gemma3:4b`.
+7. **EventPro-Simulation (SIMULIERT):** was Olist nicht zeigen kann: Kanal-Mix mit SEO/GEO (KI-Antworten als eigener Kanal), Kosten pro Buchung, ein Check auf Tracking-Fehler, Win/Loss bei Enterprise-Deals nach Branche mit Konfidenzintervallen, Win-Rate nach Antwortzeit, Verlustgründe. Ein Warnhinweis oben auf der Seite macht klar, dass jede Zahl simuliert ist (Abschnitt 11).
+8. **Frag die Daten:** Fragen zu den Zahlen, beantwortet von einem kostenlosen, lokalen KI-Modell (Ollama, Modell `gemma3:4b`). Es bekommt nur die berechneten Fakten, und jede Antwort ist als KI-Antwort markiert. Einmalig einrichten: `winget install Ollama.Ollama`, dann `ollama pull gemma3:4b`.
 
 Die meisten Seiten enden mit einer **„Und jetzt?“-Box**. Regeln hinter dem Dashboard: Es öffnet das Warehouse nur zum Lesen und mit einer kurzen Verbindung pro Abfrage (deshalb kann `src\warehouse.py` laufen, während es offen ist; danach „Daten neu laden“ klicken). Es berechnet selbst keine Kennzahl, und alle Texte stehen in `src/i18n/translations.json`.
 
@@ -194,6 +207,10 @@ Sortiert nach Priorität: Das erste Ergebnis entscheidet darüber, wie verlässl
 
 ## 10. So startest du das Projekt (Windows)
 
+**Mit einem Befehl** (wenn die CSV-Dateien in `data\raw\` liegen): `.\run.ps1` legt bei Bedarf `.venv` an, installiert die Pakete und führt alle Schritte unten der Reihe nach aus. Beim ersten Fehler stoppt das Skript und sagt, wo es weitergeht (`.\run.ps1 --from warehouse`). `.\run.ps1 --dry-run` zeigt nur die Schritte.
+
+Schritt für Schritt:
+
 ```powershell
 git clone https://github.com/walidsharaar/python_projects.git
 cd "python_projects\044_Olis Market Insights"
@@ -215,6 +232,9 @@ python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
 python analysis\05_cohorts.py
 python analysis\06_experiments.py
+# 4b. SIMULIERTE EventPro-Daten + Analyse (ohne Kaggle-Daten, klar markiert)
+python src\simulate.py
+python analysis\07_simulated_eventpro.py
 # 5. Dashboard (Englisch, Deutsch, Persisch)
 streamlit run app\Home.py
 # 6. GTM-Report als Markdown in reports\weekly\ (mit --ai kommt eine optionale KI-Zusammenfassung dazu;
@@ -226,7 +246,35 @@ python -m unittest discover tests
 
 ---
 
-## 11. Projektstand
+## 11. Übertragung auf einen Event-Marktplatz
+
+Die Daten kommen von Olist, aber die Struktur ist bei jedem B2B-Marktplatz für Locations oder Services gleich: Anbieter gewinnen, zur ersten Buchung bringen und Unternehmen zum Wiederbuchen bewegen. [docs/transfer_to_event_marketplace.md](docs/transfer_to_event_marketplace.md) zeigt, wie jede Methode übertragen wird (Verkäufer → Location, Bestellung → Buchung), welche KPIs im Event-Geschäft dazukommen (Anfrage-zu-Angebot, Antwortzeit der Anbieter, Wiederbuchung in 12 Monaten), welche CRM-Daten eine echte Win/Loss-Analyse für Enterprise-Deals braucht und wie man SEO und GEO misst.
+
+### Simulierte Demonstration (synthetische Daten, nicht Olist, kein echtes Unternehmen)
+
+Olist hat keinen Web-Traffic, keine Marketingkosten, keine verlorenen Deals und keine Kundenbranchen. Um die Methoden genau für diese Fragen zu zeigen, erzeugt `src/simulate.py` einen **klar markierten, simulierten** Event-Marktplatz („EventPro“, Jan 2024 – Dez 2025, fester Seed). Er liegt in einem eigenen Ordner (`data/simulated/`), einer eigenen Datenbank (`database/simulation.duckdb`, jede Tabelle heißt `sim_…`) und auf einer eigenen Dashboard-Seite mit Warnhinweis. Er wird nie mit den Olist-Zahlen vermischt. Die Daten haben eine **geplante Geschichte**, und `analysis/07_simulated_eventpro.py` muss sie wiederfinden. So wird die Methode getestet. Details: [docs/simulation.md](docs/simulation.md), Belege: [reports/analysis/07_simulated_eventpro.md](reports/analysis/07_simulated_eventpro.md).
+
+Was die Analyse in den simulierten Daten findet:
+
+- **GEO:** KI-Antworten bringen 3,6 % der Sitzungen, aber 8,6 % der Buchungen (2,9-mal so viele Buchungen pro Sitzung wie die organische Suche). Die organische Suche hat 7,8 % weniger Sitzungen als 2024.
+- **Tracking-Check:** Eine einfache Regel (Wochenanteil unter der Hälfte des Medians der letzten 8 Wochen) findet genau die drei geplanten Fehler-Wochen im Juni 2025, in denen KI-Traffic als „direkt“ erfasst wurde.
+- **Win/Loss:** Nur Pharma (30,8 %) und IT (28,5 %) liegen klar über dem Schnitt von 23,3 %, nur Automotive (16,3 %) klar darunter. Die anderen Branchen überschneiden sich und bekommen keinen Rang. Eine erste Antwort nach mehr als 24 Stunden geht mit niedrigeren Gewinnchancen einher (Odds Ratio 0,39, bei gleicher Branche, Größe und Event-Art). Das ist ein Zusammenhang, kein Beweis.
+- **Verlustgründe:** Automotive verliert bei 43 % der verlorenen Deals über den Preis, die anderen Branchen bei 24 %. Bei 6,3 % der verlorenen Deals fehlt der Grund.
+- **Vorher/Nachher mit Vergleichsgruppe:** Bei Automotive fiel die Win-Rate für Deals ab Juli 2025 von 19,2 % auf 4,5 %. Die anderen Branchen blieben gleich (+0,3 Punkte). Difference-in-Differences: −14,9 Punkte, Odds Ratio der Interaktion 0,20, p = 0,035. Die Richtung ist belegt, die genaue Größe nicht (nur 44 entschiedene Deals ab Juli).
+
+---
+
+## 12. So habe ich mit einem Coding Agent gearbeitet
+
+Ich habe das Projekt zusammen mit einem KI-Coding-Agent (Claude) gebaut, in kleinen Phasen mit einer Prüfung nach jeder Phase.
+
+- **Mein Teil:** die Fragen an die Daten, die Spalte „Was die Daten hergeben“, die KPI-Definitionen, der Phasenplan und die Regeln: Rohdaten werden nie verändert, jede Rate zeigt Zähler und Nenner, keine Zahl steht in einem Dokument, ohne dass ein Skript sie gemessen hat, und die KI-Zusammenfassung im Report beschreibt nur vorher berechnete Zahlen.
+- **Teil des Agents:** der größte Teil des Python- und SQL-Codes, Phase für Phase.
+- **Prüfung:** Nach jeder Phase habe ich den Code ausgeführt, die Zahlen zwischen Skripten, Marts und README verglichen und erst dann die nächste Phase freigegeben. Beispiel: Die Win-Rate über alle Monate (8,1 %) passte nicht zu den Ergebnissen im README. Deshalb zeigt jetzt überall `lead_to_win_rate_60d_tracked` die Zahl (Entscheidungen in [docs/kpi_definitions.md](docs/kpi_definitions.md)).
+
+---
+
+## 13. Projektstand
 
 - [x] Schritt 1: Setup, Daten-Download, Daten-Check, Fragen an die Daten
 - [x] Schritt 2: Profiling & Bereinigung
@@ -235,6 +283,8 @@ python -m unittest discover tests
 - [x] Schritt 5: Kohorten & Experiment-Modul
 - [x] Schritt 6: Streamlit-Dashboard auf Englisch, Deutsch und Persisch (Farsi/Dari)
 - [x] Schritt 7: Automatischer GTM-Report in drei Sprachen mit optionaler KI-Zusammenfassung
+- [x] Schritt 8: Start mit einem Befehl (`run.ps1` / `run_all.py`), README-Abgleich, Übertragung auf einen Event-Marktplatz
+- [x] Schritt 9: Simulierte EventPro-Demonstration (SEO/GEO, Kanalkosten, Win/Loss bei Enterprise-Deals), klar markiert und getestet
 
 ---
 

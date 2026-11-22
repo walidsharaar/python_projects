@@ -44,7 +44,7 @@ TOP_FINDINGS = [1, 2, 3]
 AI_MODEL = "claude-opus-5-5"
 
 
-# ------------------------------------------------------------------ data
+
 def load(db_path: Path) -> dict:
     with duckdb.connect(str(db_path), read_only=True) as con:
         return {

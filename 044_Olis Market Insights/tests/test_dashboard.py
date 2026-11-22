@@ -31,6 +31,7 @@ PAGES = {
     "views/marketing.py": (4, 3),
     "views/sellers.py": (3, 4),
     "views/experiments.py": (5, 0),
+    "views/simulation.py": (4, 5),
     "views/recommendations.py": (0, 0),
     "views/data_quality.py": (2, 0),
     "views/ask.py": (0, 0),

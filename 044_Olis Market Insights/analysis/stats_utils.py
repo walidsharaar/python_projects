@@ -40,7 +40,7 @@ def chi_square(df: pd.DataFrame, group: str, outcome: str) -> tuple[float, int, 
     return float(chi2), int(dof), float(p)
 
 
-# ------------------------------------------------------------ experiments
+
 # Used by analysis/06_experiments.py and later by the dashboard's
 # sample size calculator, so both always give the same answer.
 

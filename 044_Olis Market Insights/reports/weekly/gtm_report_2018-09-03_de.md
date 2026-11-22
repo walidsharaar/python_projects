@@ -1,6 +1,6 @@
 # GTM-Report: 3. Sep. 2018
 
-_Automatisch erstellt am 19. Nov. 2026 aus der KPI-Schicht (database/warehouse.duckdb). Daten: echte, öffentliche Daten von Olist, tatsächliches Datenende 3. Sep. 2018._
+_Automatisch erstellt am 22. Nov. 2026 aus der KPI-Schicht (database/warehouse.duckdb). Daten: echte, öffentliche Daten von Olist, tatsächliches Datenende 3. Sep. 2018._
 
 ## 1. Die wichtigsten Kennzahlen
 

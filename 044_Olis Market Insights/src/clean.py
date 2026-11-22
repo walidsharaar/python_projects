@@ -64,7 +64,7 @@ def clean_leads() -> pd.DataFrame:
     return df
 
 
-# --------------------------------------------------------------- deals
+
 def clean_deals(leads: pd.DataFrame) -> pd.DataFrame:
     df = read_raw("olist_closed_deals_dataset.csv", parse_dates=["won_date"])
     df = normalize_text(df, "deals", ["business_segment", "lead_type",

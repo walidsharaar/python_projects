@@ -1,6 +1,6 @@
 # Marketplace GTM Analytics: From Lead to Active Seller
 
-> End-to-end Go-to-Market analysis of a **two-sided B2B marketplace**: from the first marketing touchpoint, through the sales close, to the seller's first revenue.
+> End-to-end Go-to-Market analysis of a **two-sided marketplace with a B2B seller side**: from the first marketing touchpoint, through the sales close, to the seller's first revenue.
 > Built with Python, DuckDB/SQL and Streamlit on **real** marketplace data (Olist, Brazil, 2016–2018).
 
 *Deutsche Version: [README.de.md](README.de.md)*
@@ -15,7 +15,7 @@ Olist is a marketplace that connects small and mid-sized merchants (sellers) wit
 2. **Activate sellers**: a closed deal only creates value once the seller actually starts selling.
 3. **Serve buyers** (demand side): customers place orders and, ideally, come back.
 
-This is the typical GTM problem of any B2B marketplace: **Marketing, Sales and Product each own one part of the funnel, but growth depends on the whole chain.** This project builds one shared, trusted data foundation across all three.
+This is the typical GTM problem of any marketplace that acquires business sellers: **Marketing, Sales and Product each own one part of the funnel, but growth depends on the whole chain.** This project builds one shared, trusted data foundation across all three.
 
 ```text
 Marketing                 Sales                      Product / Marketplace
@@ -34,7 +34,7 @@ Each question maps to a typical responsibility of a GTM & Insights analyst. The 
 |---|---|---|---|---|
 | Q1 | **GTM performance monitoring** | What is our lead-to-win conversion, how long does a deal take, and how does this develop month by month? | KPI tree, monthly funnel, fixed 60-day conversion window | Recent cohorts are right-censored, so we compare fixed windows instead of raw "won ever" |
 | Q2 | **Channel performance** | Which acquisition channels deliver leads that *close*, and which deliver sellers that actually *sell*? | Conversion + activation + 90-day GMV per channel, Wilson confidence intervals | Small channels (n < 100) are reported with intervals, not as rankings |
-| Q3 | **Tracking & data quality** | How much of the funnel is unattributed, and does it distort channel decisions? | Share of `unknown`/missing origin, conversion comparison | 14.5% of leads have no usable origin, and they convert *above* average |
+| Q3 | **Tracking & data quality** | How much of the funnel is unattributed, and does it distort channel decisions? | Share of `unknown`/missing origin, conversion comparison | 14.5% of all leads (14.4% of 2018 leads) have no usable origin, and they convert *above* average |
 | Q4 | **Segment comparison** | Which business segments (e.g. `health_beauty` vs `car_accessories`) close faster, activate more and generate more GMV? | Segment benchmarking on won deals | Segments are only known for **won** deals, so this compares *quality of wins*, not conversion |
 | Q5 | **Cohort analysis + before/after** | Did conversion really improve between 2017 and 2018, or is it a data artifact? | Monthly lead cohorts, fixed windows, data coverage checks | See observation H1: a naive before/after comparison would be misleading |
 | Q6 | **Win/loss for sales enablement** | What separates leads that close from leads that don't, and wins that activate from wins that don't? | Logistic regression (origin, landing page, month), won-vs-activated comparison (lead type, business type, SDR) | No explicit loss reasons exist, so "loss" = MQL without a closed deal |
@@ -57,42 +57,54 @@ Source: Kaggle, *Marketing Funnel by Olist* + *Brazilian E-Commerce Public Datas
 | Orders | 99,441 | Sep 2016 – Oct 2018 (with items only until 3 Sep 2018) | Q9, Q10 |
 | Order items, sellers, customers, products, payments, reviews | — | — | Q9, Q10 |
 
-Headline numbers (from the initial data audit):
+Headline numbers (first data audit on all leads and all won sellers; the fair comparisons in section 9 use 2018 lead cohorts and sellers with a full 90-day window):
 
-- **Lead-to-win conversion:** 842 / 8,000 = **10.5%**
+- **Lead-to-win conversion:** 842 / 8,000 = **10.5%** (won ever); **10.6%** within 60 days for 2018 cohorts (636 of 5,998)
 - **Median sales cycle:** 14 days (mean 48, so a long tail)
 - **Seller activation:** only **45%** of won sellers ever make a sale (51% for sellers with a full 90-day window)
 - **Median time from close to first sale:** 44 days
 - **GMV concentration:** the top 10% of new sellers generate **83%** of the GMV of all new sellers in their first 90 days
-- **Buyer repeat rate:** only **3.1%** of customers order more than once
+- **Buyer repeat rate:** only **3.1%** of customers (2,924 of 95,560) have two or more non-canceled orders
 
 ---
 
 ## 4. Preliminary observations (hypotheses to test)
 
-These come from the initial data audit. They are **hypotheses**, not conclusions, and each will be confirmed or rejected in the analysis.
+These come from the initial data audit, which used all leads and all won sellers. They are **hypotheses**, not conclusions. Each one has a **Result** line with the tested number on the fair population (2018 lead cohorts, sellers with a full 90-day window). That is why some numbers differ from the audit.
 
 **H1: The 2017 → 2018 "conversion jump" is most likely a tracking artifact, not a success.**
 Leads from 2017 show a 60-day conversion of **0.5%**, while leads from 2018 show **10.6%**. But the first `won_date` in the data is **5 Dec 2017**, so closed deals were probably only recorded from then on. A naive before/after comparison would celebrate a 20× improvement that never happened.
 → *Implication: before/after analyses need a data-coverage check first. Valid comparisons use 2018 cohorts only.*
 
+**Result: confirmed.** With both periods fully tracked, Jan–Feb 2018 converts at 10.9% and Mar–Apr 2018 at 11.8%: about +1 point, not 21×. (Finding 2)
+
 **H2: Unattributed leads are high-intent leads, so tracking loss distorts channel decisions.**
 `unknown` + missing origin = 1,159 leads (14.5%), converting at about **16–23%**, against 11.8% for organic search.
 → *Implication: fix attribution first (UTM parameters, landing-page tracking). Otherwise budget is shifted on incomplete data.*
 
+**Result: confirmed.** 2018 cohorts: 861 of 5,998 leads (14.4%) have no channel, but they bring 160 of 636 60-day wins (25.2%), with a win rate of 18.6% vs 9.3% for tracked leads. 62% of them arrive through one landing page. (Finding 1)
+
 **H3: Channels differ massively in quality, not just volume.**
 Paid search (12.3%) and organic search (11.8%) convert similarly, while email (3.0%) and social (5.6%) convert at a fraction of that, although social delivers 1,350 leads.
+
+**Result: confirmed, with a correction.** 2018 cohorts, 60-day window: paid search 11.6% vs organic search 11.5% (p = 0.95, no real difference), social 4.7% on 1,051 leads, email 3.2%. The audit numbers above used all months and "won ever". (Findings 3 and 7)
 
 **H4: A "won" deal is not a success: lead type predicts activation.**
 `online_big` leads activate at **63%** (mean 90-day GMV ≈ 1,490 BRL), while `offline` leads activate at **29%** (≈ 80 BRL) and `industry` leads at 33%.
 → *Implication for sales enablement: qualify on activation likelihood, not only on closing likelihood.*
 
+**Result: confirmed.** Sellers with a full 90-day window: `online_big` 72%, `offline` 34%, `industry` 37%. The pattern holds in a logistic regression (odds ratio `offline` 0.36). `online_big` is 15% of sellers but 47% of 90-day GMV. (Finding 4)
+
 **H5: A few landing pages carry the funnel.**
 The two largest landing pages (about 900 leads each) convert at about **19–20%**, while other high-traffic pages convert at 3–7%.
+
+**Result: partly confirmed.** In 2018 cohorts the two largest pages have 751 and 726 leads and convert at 19.2% and 19.6%. But 71% of the leads on page b76ef374 are untracked, and after adjusting for the channel mix and a Benjamini–Hochberg correction only 3 of 18 pages really differ from their channel. (Finding 6)
 
 **H6: Classical A/B tests on lead-to-win are too slow at this volume.**
 To detect an uplift from 12% to 14% (α = 0.05, power = 80%) we need about **4,400 leads per variant**. At about 1,200 MQLs per month that takes **7+ months**.
 → *Implication: test on faster upper-funnel metrics (MQL rate, SDR contact rate), use a sequential design, or use before/after with a control group (difference-in-differences).*
+
+**Result: confirmed.** The power analysis gives 4,433 leads per group, so about 9.4 months including the 2 months until the outcome is known. (reports/analysis/06_experiments.md)
 
 ---
 
@@ -106,7 +118,7 @@ To detect an uplift from 12% to 14% (α = 0.05, power = 80%) we need about **4,4
 | Seller activation rate | Won sellers with ≥ 1 non-cancelled order ÷ won sellers | Separates "signed" from "selling" |
 | Time to first sale | First order date − `won_date`, in days | Onboarding speed |
 | 90-day GMV per won seller | Sum of item prices in the first 90 days after `won_date` | A comparable value metric per acquired seller |
-| Buyer repeat rate | Customers (`customer_unique_id`) with ≥ 2 orders ÷ all customers | Demand-side loyalty |
+| Buyer repeat rate | Customers (`customer_unique_id`) with ≥ 2 non-canceled orders ÷ customers with ≥ 1 non-canceled order | Demand-side loyalty |
 
 ---
 
@@ -160,7 +172,7 @@ KPI definitions in English and German: [docs/kpi_definitions.md](docs/kpi_defini
 
 ## 8. Dashboard pages
 
-Start with `streamlit run app\Home.py`. Language selector in the sidebar: **English, Deutsch, فارسی / دری** (Persian switches the layout to right to left). In German and Persian, every KPI's help text also shows the English term.
+Start with `streamlit run app\Home.py`. Language selector in the sidebar: **English** and **Deutsch**. Persian (فارسی / دری, right to left) is included as an extra. In German and Persian, every KPI's help text also shows the English term.
 
 1. **GTM overview:** 7 KPI tiles with numerator and denominator, leads and 60-day win rate by month (untracked months greyed out)
 2. **Marketing & channels:** tracking gap, win rate per channel with 95 % confidence interval, activated sellers per 1,000 leads, landing pages against their channel mix (naive vs. corrected test)
@@ -168,7 +180,8 @@ Start with `streamlit run app\Home.py`. Language selector in the sidebar: **Engl
 4. **Experiments:** sample size and duration calculator (defaults from the real lead volume), evaluation of a finished A/B test with a decision rule
 5. **Recommendations:** the nine findings, filterable by team
 6. **Data quality:** every known gap with records affected and the KPIs it affects
-7. **Ask the data:** questions about the numbers, answered by a free local AI model (Ollama, model `gemma3:4b`). It gets only the calculated facts, and every answer is labelled as AI-generated. Setup once: `winget install Ollama.Ollama`, then `ollama pull gemma3:4b`.
+7. **EventPro simulation (SYNTHETIC):** what Olist cannot show: SEO/GEO channel mix (AI answers as their own channel), cost per booking, a tracking-incident check, enterprise win/loss by industry with confidence intervals, win rate by response time, loss reasons. A warning banner on top makes clear that every number is simulated (section 11).
+8. **Ask the data:** questions about the numbers, answered by a free local AI model (Ollama, model `gemma3:4b`). It gets only the calculated facts, and every answer is labelled as AI-generated. Setup once: `winget install Ollama.Ollama`, then `ollama pull gemma3:4b`.
 
 Most pages end with a **"So what?"** box. Rules behind the dashboard: it opens the warehouse read-only with a short connection per query (so `src\warehouse.py` can run while it is open; use "Reload data" afterwards), it calculates no KPI itself, and all display text lives in `src/i18n/translations.json`.
 
@@ -194,6 +207,10 @@ Ordered by priority: the first finding affects how reliable all the others are. 
 
 ## 10. How to run (Windows)
 
+**One command** (after the CSVs are in `data\raw\`): `.\run.ps1` creates `.venv` if needed, installs the requirements and runs every step below in order. It stops at the first failing step and tells you where to continue (`.\run.ps1 --from warehouse`). `.\run.ps1 --dry-run` only lists the steps.
+
+Step by step:
+
 ```powershell
 git clone https://github.com/walidsharaar/python_projects.git
 cd "python_projects\044_Olis Market Insights"
@@ -215,6 +232,9 @@ python analysis\03_landing_pages.py
 python analysis\04_tracking_data_quality.py
 python analysis\05_cohorts.py
 python analysis\06_experiments.py
+# 4b. SIMULATED EventPro data + analysis (no Kaggle data needed, clearly labelled)
+python src\simulate.py
+python analysis\07_simulated_eventpro.py
 # 5. Dashboard (English, German, Persian)
 streamlit run app\Home.py
 # 6. GTM report as Markdown in reports\weekly\ (add --ai for an optional AI summary;
@@ -226,7 +246,35 @@ python -m unittest discover tests
 
 ---
 
-## 11. Project status
+## 11. Transfer to an event-booking marketplace
+
+The data is from Olist, but the structure is the same for any B2B marketplace that books locations or services: win providers, get them to a first booking, and bring companies back. [docs/transfer_to_event_marketplace.md](docs/transfer_to_event_marketplace.md) shows how each method maps (seller → location, order → booking), which KPIs an event business adds (inquiry-to-offer, provider response time, repeat booking within 12 months), what a real enterprise win/loss analysis needs from the CRM, and how to measure SEO and GEO.
+
+### Simulated demonstration (synthetic data, not Olist, not any real company)
+
+Olist has no web traffic, no marketing spend, no lost deals and no customer industries. To show the methods for exactly these questions, `src/simulate.py` generates a **clearly labelled synthetic** event marketplace ("EventPro", Jan 2024 – Dec 2025, fixed seed). It lives in its own folder (`data/simulated/`), its own database (`database/simulation.duckdb`, every table `sim_…`) and its own dashboard page with a warning banner. It never mixes with the Olist numbers. The data has a **planned story**, and `analysis/07_simulated_eventpro.py` has to find it again; that is how the method is tested. Details: [docs/simulation.md](docs/simulation.md), evidence: [reports/analysis/07_simulated_eventpro.md](reports/analysis/07_simulated_eventpro.md).
+
+What the analysis finds in the simulated data:
+
+- **GEO:** AI answers bring 3.6 % of sessions but 8.6 % of bookings (2.9× the bookings per session of organic search). Organic search sessions −7.8 % vs 2024.
+- **Tracking check:** a simple rule (weekly share below half of the last 8 weeks' median) finds exactly the three planted incident weeks in June 2025, when AI traffic was recorded as "direct".
+- **Win/loss:** only Pharma (30.8 %) and IT (28.5 %) are clearly above the average of 23.3 %, only Automotive (16.3 %) clearly below; the rest overlap and are not ranked. A first answer after more than 24 h goes with lower odds of winning (odds ratio 0.39, with industry, size and event type held constant), which is an association, not proof.
+- **Loss reasons:** Automotive loses on price in 43 % of lost deals vs 24 % elsewhere; 6.3 % of lost deals have no reason recorded.
+- **Before/after with a comparison group:** Automotive fell from 19.2 % to 4.5 % for deals created from July 2025, while the other industries stayed flat (+0.3 points). Difference-in-differences: −14.9 points, interaction odds ratio 0.20, p = 0.035. The direction is confirmed; the size is uncertain (only 44 decided deals after July).
+
+---
+
+## 12. How I worked with a coding agent
+
+I built this project together with an AI coding agent (Claude), in small phases with a review after each one.
+
+- **My part:** the business questions, the "validity check" column, the KPI definitions, the phase plan and the rules: raw data is never changed, every rate shows numerator and denominator, no number appears in a document unless a script measured it, and the AI summary in the report only describes pre-computed numbers.
+- **The agent's part:** most of the Python and SQL code, written phase by phase.
+- **Review:** after each phase I ran the code, compared the numbers across scripts, marts and README, and only then approved the next phase. Example: the all-months win rate (8.1 %) disagreed with the README findings, which led to the decision to report `lead_to_win_rate_60d_tracked` everywhere (decision log in [docs/kpi_definitions.md](docs/kpi_definitions.md)).
+
+---
+
+## 13. Project status
 
 - [x] Step 1: Setup, data download, data audit, business questions
 - [x] Step 2: Profiling & cleaning
@@ -235,6 +283,8 @@ python -m unittest discover tests
 - [x] Step 5: Cohorts & experiment module
 - [x] Step 6: Streamlit dashboard in English, German and Persian (Farsi/Dari)
 - [x] Step 7: Automated GTM report in three languages with optional AI summary
+- [x] Step 8: One-command run (`run.ps1` / `run_all.py`), README consistency check, transfer to an event marketplace
+- [x] Step 9: Simulated EventPro demonstration (SEO/GEO, channel cost, enterprise win/loss), clearly labelled and tested
 
 ---
 

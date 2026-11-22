@@ -35,6 +35,7 @@ pages = [
     st.Page("views/marketing.py", title=tr("nav.marketing"), url_path="marketing"),
     st.Page("views/sellers.py", title=tr("nav.sellers"), url_path="sellers"),
     st.Page("views/experiments.py", title=tr("nav.experiments"), url_path="experiments"),
+    st.Page("views/simulation.py", title=tr("nav.simulation"), url_path="simulation"),
     st.Page("views/recommendations.py", title=tr("nav.recommendations"), url_path="recommendations"),
     st.Page("views/data_quality.py", title=tr("nav.data_quality"), url_path="data-quality"),
     st.Page("views/ask.py", title=tr("nav.ask"), url_path="ask"),

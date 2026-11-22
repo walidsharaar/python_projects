@@ -45,7 +45,7 @@ for section, keys in TILES:
     for column, key in zip(st.columns(len(keys)), keys):
         kpi_tile(column, k, key)
 
-# ------------------------------------------------- activation curve
+
 st.subheader(tr("sellers.curve.title"))
 curve = activation_curve()
 curve = curve[(curve["observable_sellers"] == curve["won_sellers"])        # whole month observable
@@ -71,7 +71,7 @@ fig.update_yaxes(rangemode="tozero")
 st.plotly_chart(layout(fig, 340, y_format=".0%"), width="stretch")
 st.caption(tr("sellers.curve.caption", min=fmt_num(MIN_SELLERS_PER_MONTH, code)))
 
-# ------------------------------------------------------- lead types
+
 types = analysis_result("lead_types")
 if types is None:
     st.info(tr("common.run_analysis", script="analysis\\02_win_vs_activation.py"))
@@ -119,7 +119,7 @@ else:
 
 st.info(f"**{tr('common.so_what')}** {tr('sellers.so_what.text')}")
 
-# --------------------------------------------------- buyer retention
+
 st.divider()
 st.subheader(tr("sellers.retention.title"))
 r = buyer_retention()
