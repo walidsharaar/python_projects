@@ -1,4 +1,16 @@
 .venv/
 data/
+logs/
 __pycache__/
+.pytest_cache/
 .env
+sql/scratch.sql
+# Power BI: local cache and settings, not source code
+**/.pbi/cache.abf
+**/.pbi/localSettings.json
+coverage.xml
+*.xml.tmp
+unit.xml
+integration.xml
+.coverage
+.ruff_cache/

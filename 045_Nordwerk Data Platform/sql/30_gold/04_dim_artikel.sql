@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS gold.dim_artikel CASCADE;
 
 CREATE TABLE gold.dim_artikel AS
 SELECT
-    ROW_NUMBER() OVER (ORDER BY a.artikel_key)::int AS artikel_sk,
+    sk.artikel_sk,                                   -- stable key from mdm.artikel_schluessel
     a.artikel_key,
     a.firma_id,
     a.artikelnr,
@@ -15,13 +15,13 @@ SELECT
     a.kosten_je_stueck,
     r.rezyklat_pct                                   AS rezyklat_pct_aktuell
 FROM silver.artikel a
+JOIN mdm.artikel_schluessel sk ON sk.artikel_key = a.artikel_key
 LEFT JOIN silver.rezyklat r
        ON r.artikel_key = a.artikel_key
-      AND r.ist_aktuell                              -- only the currently valid row
+      AND r.ist_aktuell
 
 UNION ALL
 
--- Unknown member
 SELECT -1, 'UNBEKANNT', NULL, NULL, 'Unbekannter Artikel', NULL, NULL, NULL, NULL, NULL, NULL;
 
 ALTER TABLE gold.dim_artikel ADD PRIMARY KEY (artikel_sk);

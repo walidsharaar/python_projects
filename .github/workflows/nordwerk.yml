@@ -1,0 +1,87 @@
+# CI for the Nordwerk Data Platform (lives in the monorepo root: python_projects/.github/workflows/)
+#
+#   quality      lint + unit tests (no database, ~10 s)       -> fast feedback on every push
+#   integration  PostgreSQL 17 service: pipeline, health check, database + end-to-end tests, coverage
+#
+# The integration job only starts when the quick job is green.
+name: Nordwerk Data Platform
+
+on:
+  push:
+    paths: ["045_Nordwerk Data Platform/**", ".github/workflows/nordwerk.yml"]
+  pull_request:
+    paths: ["045_Nordwerk Data Platform/**", ".github/workflows/nordwerk.yml"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: "045_Nordwerk Data Platform"
+
+jobs:
+  quality:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "045_Nordwerk Data Platform/requirements.txt"
+      - run: pip install -r requirements.txt
+      - name: Lint
+        run: python manage.py lint
+      - name: Unit tests
+        run: python -m pytest -m unit --junitxml=unit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: "045_Nordwerk Data Platform/unit.xml"
+
+  integration:
+    name: Pipeline, database and end-to-end tests
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nordwerk
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: nordwerk_dwh
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nordwerk"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:                       # no .env file in CI: the same names come from here
+      POSTGRES_USER: nordwerk
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_DB: nordwerk_dwh
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "045_Nordwerk Data Platform/requirements.txt"
+      - run: pip install -r requirements.txt
+      - name: Pipeline from scratch
+        run: python manage.py run --generate
+      - name: Health check
+        run: python manage.py check
+      - name: Database and end-to-end tests with coverage
+        run: python -m pytest -m "db or e2e" --cov --cov-report=term --cov-report=xml --junitxml=integration.xml
+      - name: Pipeline log
+        if: always()
+        run: tail -n 200 logs/pipeline.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-results
+          path: |
+            045_Nordwerk Data Platform/integration.xml
+            045_Nordwerk Data Platform/coverage.xml
+            045_Nordwerk Data Platform/logs/pipeline.log

@@ -3,7 +3,6 @@ DROP TABLE IF EXISTS gold.dim_kunde CASCADE;
 
 CREATE TABLE gold.dim_kunde AS
 WITH kandidaten AS (
-    -- all source records of a group customer, ranked by the survivorship rule
     SELECT
         m.konzern_kunde_id,
         k.kundenname,
@@ -22,7 +21,6 @@ WITH kandidaten AS (
     JOIN silver.kunde k ON k.kunde_key = m.kunde_key
 ),
 firmen AS (
-    -- in which group companies does this customer buy?
     SELECT
         konzern_kunde_id,
         COUNT(DISTINCT firma_id)                              AS anzahl_firmen,
@@ -31,7 +29,7 @@ firmen AS (
     GROUP BY konzern_kunde_id
 )
 SELECT
-    ROW_NUMBER() OVER (ORDER BY c.konzern_kunde_id)::int AS kunde_sk,
+    SUBSTRING(c.konzern_kunde_id FROM 3)::int AS kunde_sk,     -- stable: GK00042 -> 42
     c.konzern_kunde_id,
     c.kundenname,
     c.plz,
@@ -46,7 +44,6 @@ WHERE c.rang = 1
 
 UNION ALL
 
--- Unknown member: catches sales whose customer is missing in the master data
 SELECT -1, 'UNBEKANNT', 'Unbekannter Kunde', NULL, NULL, 0, NULL, false, NULL;
 
 ALTER TABLE gold.dim_kunde ADD PRIMARY KEY (kunde_sk);

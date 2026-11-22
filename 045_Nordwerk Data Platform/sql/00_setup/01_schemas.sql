@@ -1,5 +1,6 @@
 -- Layers of the data platform
-CREATE SCHEMA IF NOT EXISTS bronze;   -- raw copies of the sources
+CREATE SCHEMA IF NOT EXISTS bronze;   -- raw copies of the sources (history + current views)
+CREATE SCHEMA IF NOT EXISTS mdm;      -- master data maintained by people: mappings, overrides, stable keys
 CREATE SCHEMA IF NOT EXISTS silver;   -- cleaned and harmonised
 CREATE SCHEMA IF NOT EXISTS gold;     -- star schema for reporting
 CREATE SCHEMA IF NOT EXISTS meta;     -- run log, load log, data quality results

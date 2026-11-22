@@ -6,7 +6,6 @@ WITH roh AS (
     SELECT
         f.firma_id,
         f.firma_id || '-' || TRIM(r.artikelnr)                          AS artikel_key,
-        -- '45 %' -> '45' -> 45.0 ; '45' -> 45.0
         REPLACE(REGEXP_REPLACE(r.rezyklatanteil, '[^0-9,.]', '', 'g'), ',', '.')::numeric(5, 2)
                                                                          AS rezyklat_pct,
         r.gueltig_ab::timestamp::date                                    AS gueltig_ab,

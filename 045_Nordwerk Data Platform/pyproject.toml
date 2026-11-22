@@ -1,0 +1,33 @@
+[project]
+name = "nordwerk-data-platform"
+version = "2.0.0"
+description = "Group-wide data integration: SAP Business One, ERP export and Excel -> PostgreSQL medallion -> Power BI"
+requires-python = ">=3.12"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: fast, no database (pure Python, fakes and temporary files)",
+    "db: needs PostgreSQL; reads the built warehouse, changes are rolled back",
+    "e2e: needs PostgreSQL; runs the whole pipeline as a subprocess (slow)",
+]
+
+
+[tool.coverage.run]
+source = ["etl", "generator"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]

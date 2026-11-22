@@ -13,16 +13,13 @@ SELECT
     'A-' || h.cardcode                   AS kunde_key,
     'A-' || l.itemcode                   AS artikel_key,
     l.quantity::numeric                  AS menge_einheit,
-    CASE l.unitmsr
-        WHEN 'Stk' THEN 'STK'
-        WHEN 'Krt' THEN 'KRT'
-        WHEN 'Pal' THEN 'PAL'
-    END                                  AS einheit,
+    e.einheit                            AS einheit,        -- from mdm.einheit_map
     l.quantity::numeric * l.numpermsr::int                                    AS menge_stueck,
     l.linetotal::numeric(14, 2)                                               AS umsatz_netto,
     ROUND(l.quantity::numeric * l.numpermsr::int * l.stockprice::numeric, 2)  AS kosten
 FROM bronze.sap_b1_inv1 l
 JOIN bronze.sap_b1_oinv h ON h.docentry = l.docentry
+LEFT JOIN mdm.einheit_map e ON e.quellsystem = 'sap_b1' AND e.quell_einheit = l.unitmsr
 WHERE h.canceled = 'N'
 
 UNION ALL

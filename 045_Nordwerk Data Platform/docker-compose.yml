@@ -1,14 +1,20 @@
 services:
   postgres:
     image: postgres:17
+    command: ["postgres", "-c", "jit=off"]   # JIT only pays off for very large analytical scans
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Europe/Berlin            # server time zone, also used by Power BI
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
 
 volumes:
   pgdata:

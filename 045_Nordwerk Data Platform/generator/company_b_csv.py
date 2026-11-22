@@ -3,6 +3,9 @@ Source system simulator: Company B (Nordwerk Beutel GmbH), another ERP.
 Exports CSV files the way many German ERPs do:
   ';' as separator, decimal comma, dates as dd.mm.yyyy, Windows-1252 encoding.
 Files: kunden.csv, artikel.csv, verkaeufe.csv (one row per invoice line)
+
+Patterns: summer peak for bin bags, about 12 % growth per year, 3 % price increase every
+January. 60 shops also buy from Company A (same market list, different customer numbers).
 """
 import random
 from pathlib import Path
@@ -10,18 +13,19 @@ from pathlib import Path
 import pandas as pd
 from faker import Faker
 
-from etl.db import get_engine
+from generator.common import market, price_factor, weighted_dates
 
 SEED = 7
-N_SHARED_CUSTOMERS = 60      # shops that also buy from Company A
-N_NEW_CUSTOMERS = 80         # shops only Company B knows
-N_INVOICES = 1200
+N_INVOICES = 1800
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "landing" / "company_b"
+
+SEASON = [0.85, 0.85, 0.95, 1.05, 1.15, 1.25, 1.30, 1.25, 1.05, 0.95, 0.90, 0.95]
+GROWTH = 0.12
 
 fake = Faker("de_DE")        # the seed is set in main(), at run time
 
 
-# --- Customers ----------------------------------------------------------
+
 def vary_name(name: str) -> str:
     """Same shop, written differently: typical when two systems keep master data."""
     r = random.random()
@@ -35,28 +39,19 @@ def vary_name(name: str) -> str:
 
 
 def make_customers() -> pd.DataFrame:
-    """Kunden: some shops are also Company A customers, but with different numbers."""
-    engine = get_engine("src_sap_b1")
-    a_customers = pd.read_sql(
-        "SELECT cardname, city, zipcode FROM ocrd WHERE cardcode BETWEEN 'C10001' AND 'C10200'",
-        engine,
-    )
-    shared = a_customers.sample(N_SHARED_CUSTOMERS, random_state=SEED)
-
-    rows = []
-    for _, c in shared.iterrows():
-        rows.append({"Kundenname": vary_name(c["cardname"]), "Ort": c["city"], "PLZ": c["zipcode"]})
-    for _ in range(N_NEW_CUSTOMERS):
-        rows.append({"Kundenname": fake.company(), "Ort": fake.city(), "PLZ": fake.postcode()})
-    # Intercompany: Company B sells to Company A
-    rows.append({"Kundenname": "Nordwerk Haushalt GmbH", "Ort": "Köln", "PLZ": "50667"})
-
+    """Kunden: market shops 141-200 (also Company A customers) plus 201-280 (only Company B)."""
+    shops = market()
+    rows = [{"Kundenname": vary_name(s["name"]), "Ort": s["city"], "PLZ": s["zipcode"]} for s in shops[140:200]]
+    # Problem: a typo in one postcode, so automatic matching with Company A fails (K-4011).
+    # The master data team resolves it with a manual override (sql/10_mdm/02_kunde_override.sql).
+    rows[10]["PLZ"] = rows[10]["PLZ"][:-2] + rows[10]["PLZ"][-1] + rows[10]["PLZ"][-2]
+    rows += [{"Kundenname": s["name"], "Ort": s["city"], "PLZ": s["zipcode"]} for s in shops[200:280]]
+    rows.append({"Kundenname": "Nordwerk Haushalt GmbH", "Ort": "Köln", "PLZ": "50667"})   # intercompany
     customers = pd.DataFrame(rows)
     customers.insert(0, "Kundennr", [f"K-{4001 + i}" for i in range(len(customers))])
     return customers
 
 
-# --- Items --------------------------------------------------------------
 LINES = ["Standard", "Extra stark", "Recycling"]
 SIZES = ["10 l", "35 l", "60 l", "120 l"]
 UNITS = [("Rolle", 1), ("Karton", 20), ("Karton", 40), ("Palette", 960)]
@@ -70,33 +65,34 @@ def make_items() -> pd.DataFrame:
         for size in SIZES:
             n += 1
             unit, per_unit = random.choice(UNITS)
+            cost = round(random.uniform(0.80, 3.50), 2)
             rows.append({
                 "Artikelnr":        f"MB-{n:04d}",
                 "Bezeichnung":      f"Müllbeutel {line} {size}",
-                "EAN":              fake.ean13() if random.random() > 0.10 else "",  # ~10% missing
+                "EAN":              fake.ean13() if random.random() > 0.10 else "",   # ~10 % missing
                 "Einheit":          unit,
                 "Stück je Einheit": per_unit,
-                "Einstandspreis":   round(random.uniform(0.80, 3.50), 2),  # cost per roll
+                "Einstandspreis":   cost,                                             # cost per roll
+                "_listenpreis":     round(cost * per_unit * random.uniform(1.25, 1.70), 2),
             })
     return pd.DataFrame(rows)
 
 
-# --- Sales --------------------------------------------------------------
 def make_sales(customers: pd.DataFrame, items: pd.DataFrame) -> pd.DataFrame:
     """Verkäufe: flat file, one row per invoice line. RE = invoice, GS = credit note."""
-    rows = []
     kunden = customers["Kundennr"].tolist()
+    weights = [min(random.paretovariate(1.6), 15.0) for _ in kunden]
+    discount = {k: round(random.uniform(0.0, 0.06), 3) for k in kunden}
     artikel = items.to_dict("records")
 
-    for i in range(1, N_INVOICES + 1):
-        belegdatum = fake.date_between(start_date="-2y", end_date="today")
-        kunde = random.choice(kunden)
+    rows = []
+    for i, belegdatum in enumerate(weighted_dates(N_INVOICES, SEASON, GROWTH), start=1):
+        kunde = random.choices(kunden, weights=weights)[0]
         belegart = "GS" if random.random() < 0.03 else "RE"
         sign = -1 if belegart == "GS" else 1          # credit notes are negative
-
         for item in random.sample(artikel, k=random.randint(1, 4)):
             menge = random.randint(1, 2) if item["Einheit"] == "Palette" else random.randint(1, 30)
-            preis = round(item["Einstandspreis"] * item["Stück je Einheit"] * random.uniform(1.25, 1.7), 2)
+            preis = round(item["_listenpreis"] * price_factor(belegdatum) * (1 - discount[kunde]), 2)
             rows.append({
                 "Belegnr":     f"{belegart}-{belegdatum.year}-{i:05d}",
                 "Belegart":    belegart,
@@ -108,17 +104,15 @@ def make_sales(customers: pd.DataFrame, items: pd.DataFrame) -> pd.DataFrame:
                 "Einzelpreis": preis,
                 "Nettobetrag": round(sign * menge * preis, 2),
             })
-
     sales = pd.DataFrame(rows)
-    # Export bug: about 1% of rows exported twice
-    duplicates = sales.sample(frac=0.01, random_state=SEED)
+    duplicates = sales.sample(frac=0.01, random_state=SEED)       # export bug: rows exported twice
     return pd.concat([sales, duplicates], ignore_index=True)
 
 
-# --- Export -------------------------------------------------------------
+
 def write_csv(df: pd.DataFrame, filename: str) -> None:
     """Write like a German ERP export: ; separator, decimal comma, dd.mm.yyyy, Windows-1252."""
-    df = df.copy()
+    df = df.drop(columns=[c for c in df.columns if c.startswith("_")]).copy()
     for col in df.columns:
         if col.endswith("datum"):
             df[col] = df[col].map(lambda d: d.strftime("%d.%m.%Y"))
@@ -126,7 +120,7 @@ def write_csv(df: pd.DataFrame, filename: str) -> None:
     print(f"{filename}: {len(df)} rows written to {OUTPUT_DIR}")
 
 
-# --- Main ---------------------------------------------------------------
+
 def main():
     Faker.seed(SEED)             # seed at run time, not at import time
     random.seed(SEED)

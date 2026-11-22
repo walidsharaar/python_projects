@@ -5,8 +5,8 @@ CREATE TABLE gold.fact_verkauf AS
 SELECT
     v.beleg_datum                       AS datum,
     v.firma_id,
-    COALESCE(dk.kunde_sk,   -1)         AS kunde_sk,       -- -1 = unknown customer
-    COALESCE(da.artikel_sk, -1)         AS artikel_sk,     -- -1 = unknown item
+    COALESCE(dk.kunde_sk,   -1)         AS kunde_sk,
+    COALESCE(da.artikel_sk, -1)         AS artikel_sk,
     v.beleg_nr,
     v.beleg_pos,
     v.belegart,

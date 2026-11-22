@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from etl.db import get_engine
+from generator.common import REFERENCE_DATE
 
 SEED = 11
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,19 +20,15 @@ OUTPUT_DIR = BASE_DIR / "data" / "landing" / "sustainability"
 OUTPUT_FILE = OUTPUT_DIR / "rezyklatanteile.xlsx"
 
 
-# --- Items of both companies ---------------------------------------------
+
 def load_items() -> pd.DataFrame:
     """Firma, Artikelnr, Bezeichnung for Company A (database) and Company B (CSV)."""
-    a = pd.read_sql(
-        "SELECT itemcode AS artikelnr, itemname AS bezeichnung FROM oitm",
-        get_engine("src_sap_b1"),
-    )
+    a = pd.read_sql("SELECT itemcode AS artikelnr, itemname AS bezeichnung FROM oitm ORDER BY itemcode",
+                    get_engine("src_sap_b1"))
     a.insert(0, "firma", "Nordwerk Haushalt GmbH")
-
     b = pd.read_csv(B_ITEMS_FILE, sep=";", encoding="cp1252")[["Artikelnr", "Bezeichnung"]]
     b.columns = ["artikelnr", "bezeichnung"]
     b.insert(0, "firma", "Nordwerk Beutel GmbH")
-
     return pd.concat([a, b], ignore_index=True)
 
 
@@ -39,23 +36,17 @@ def recycled_share(name: str) -> int:
     """A plausible share in percent, depending on the product."""
     if "Recycling" in name:
         return random.randint(60, 85)
-    if "Beutel" in name:
+    if "beutel" in name.lower():          # "Müllbeutel", "Gefrierbeutel" (found by a unit test)
         return random.randint(10, 40)
     return random.randint(0, 35)
 
 
-# --- The sheet, as the team maintains it --------------------------------
+
 def make_sheet(items: pd.DataFrame) -> pd.DataFrame:
-    rows = []
-    for it in items.itertuples(index=False):
-        rows.append({
-            "Firma":          it.firma,
-            "Artikelnr":      it.artikelnr,
-            "Bezeichnung":    it.bezeichnung,
-            "Rezyklatanteil": recycled_share(it.bezeichnung),
-            "Gültig ab":      date(2025, 1, 1),
-            "Gepflegt von":   random.choice(["MDM", "Nachhaltigkeit"]),
-        })
+    rows = [{"Firma": it.firma, "Artikelnr": it.artikelnr, "Bezeichnung": it.bezeichnung,
+             "Rezyklatanteil": recycled_share(it.bezeichnung), "Gültig ab": date(2025, 1, 1),
+             "Gepflegt von": random.choice(["MDM", "Nachhaltigkeit"])}
+            for it in items.itertuples(index=False)]
     df = pd.DataFrame(rows)
 
     # History: three items got a better share from 2026 (a second row each)
@@ -64,34 +55,30 @@ def make_sheet(items: pd.DataFrame) -> pd.DataFrame:
     updates["Gültig ab"] = date(2026, 1, 1)
 
     # Problem: an item number that doesn't exist (typo)
-    unknown = pd.DataFrame([{
-        "Firma": "Nordwerk Haushalt GmbH", "Artikelnr": "A09999",
-        "Bezeichnung": "Spülmittel Zitrone 500 ml", "Rezyklatanteil": 30,
-        "Gültig ab": date(2025, 1, 1), "Gepflegt von": "MDM",
-    }])
-
+    unknown = pd.DataFrame([{"Firma": "Nordwerk Haushalt GmbH", "Artikelnr": "A09999",
+                             "Bezeichnung": "Spülmittel Zitrone 500 ml", "Rezyklatanteil": 30,
+                             "Gültig ab": date(2025, 1, 1), "Gepflegt von": "MDM"}])
     df = pd.concat([df, updates, unknown], ignore_index=True)
 
-    # Problem: about 10% of percentages typed as text, e.g. "45 %"
+    # Problem: about 10 % of percentages typed as text, e.g. "45 %"
     text_rows = df.sample(frac=0.10, random_state=SEED).index
     df["Rezyklatanteil"] = df["Rezyklatanteil"].astype(object)
     df.loc[text_rows, "Rezyklatanteil"] = [f"{v} %" for v in df.loc[text_rows, "Rezyklatanteil"]]
-
     return df.sort_values(["Firma", "Artikelnr", "Gültig ab"]).reset_index(drop=True)
 
 
-# --- Write Excel with title rows ----------------------------------------
+
 def write_excel(df: pd.DataFrame) -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(OUTPUT_FILE, engine="openpyxl") as writer:
-        df.to_excel(writer, sheet_name="Rezyklat", startrow=3, index=False)  # table starts in row 4
+        df.to_excel(writer, sheet_name="Rezyklat", startrow=3, index=False)   # table starts in row 4
         ws = writer.sheets["Rezyklat"]
         ws["A1"] = "Rezyklatanteile je Artikel (in %)"
-        ws["A2"] = f"Stand: {date.today():%d.%m.%Y} - bitte nur Spalte D pflegen"
+        ws["A2"] = f"Stand: {REFERENCE_DATE:%d.%m.%Y} - bitte nur Spalte D pflegen"
     print(f"rezyklatanteile.xlsx: {len(df)} rows written to {OUTPUT_DIR}")
 
 
-# --- Main ---------------------------------------------------------------
+
 def main():
     random.seed(SEED)            # seed at run time, not at import time
     write_excel(make_sheet(load_items()))
